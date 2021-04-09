@@ -1,7 +1,7 @@
-from context import pyra
+from context import pyas 
 
 def test():
-    pyra.hello()
+    pyas.hello()
 
 if __name__ == "__main__":
     test()

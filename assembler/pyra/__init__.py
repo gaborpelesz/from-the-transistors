@@ -1,1 +1,0 @@
-from .pyra import hello

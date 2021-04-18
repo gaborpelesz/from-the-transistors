@@ -16,8 +16,10 @@ Generate text file with character coded hexadecimals
 
 ## Instruction set
 
-*pyas/supported.txt* is a list of supported the supported instruction.
-TODO maybe generate a hash from this file to identify if this supported.txt was changed or not
+So far implemented:
+- MOV, ADD, CMP (and probably a lot more, TODO test these!!)
+- immediates, rotation immediates (e.g., `MOV R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word`)
+- LSL, LSR and other register shifts (excluding RRX because it is essentially ROR with immediate #0)
 
 Registers:
 - general purpose registers: R0...R11, except

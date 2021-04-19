@@ -1,4 +1,4 @@
-# PYAS - Python ARM Assembler
+# PYAS - Python ARMv4 Assembler
 
 ### TODO maybe move some of this documentation into my CPU's page
 
@@ -12,16 +12,22 @@ This assembler has the only purpose to directly translate the instruction for my
 
 Generate text file with character coded hexadecimals
 
-`pyas <assembly>.s -s <binary_output_name>`
+((`pyas <assembly>.s -s <binary_output_name>`)) not implemented yet
 
 ## Instruction set
 
-So far implemented:
+**So far implemented**:
 - data processing instructions
     - immediates, rotation immediates (e.g., `MOV R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word`)
     - LSL, LSR and other register shifts for data processing instructions (excluding RRX because it is essentially ROR with immediate #0)
     - supported instructions:
         - all data processing instructions (MOV, ADD, AND, CMP, TST, ...)
+- branch instructions
+    - B, BL with branching immediates (e.g., `B #36`)
+
+**TODOs**:
+- map labels to addresses
+- LDR and STR operations to load and store memory
 
 Registers:
 - general purpose registers: R0...R11, except
@@ -34,32 +40,11 @@ Registers:
     - R15: Program counter
     - CPSR: Current program status register
 
-Currently planning to support the most basic/common instructions:
-- **LDR**: Load word
-- **STR**: Store word
-- **ADD**: addition
-- **SUB**: subtraction
-- **MUL**: multiplication
-- **LSL**: Left shift
-- **LSR**: Right shift
-- **CMP**: Compare
-- **AND**: Bitwise AND
-- **ORR**: Bitwise OR
-- **EOR**: Bitwise XOR
-- **PUSH**: push on stack
-- **POP**: pop off stack
-- **B**: Branch
-- **BL**: Branch with Link
+## Syntax
 
-## Comments
+### Comments
 
 PYAS is using the ARMAS style ';' single line comments.
 
 # Testing
-Testing should work by populating the test_programs directory with simple assembly programs with instructions that we support and translating them into machine code with a real working translator and this translator 
-
-Generate test cases with ARM assembler:
-`arm-none-eabi-as <assembly>.s -o <outfile>`
-
-Generate assembly with GCC from C programs:
-`arm-none-eabi-gcc --specs=nosys.specs -o main.out main.c`
+Testing should work by populating the test_programs directory with simple assembly programs with instructions that we support and translating them into machine code with a real working translator and this translator

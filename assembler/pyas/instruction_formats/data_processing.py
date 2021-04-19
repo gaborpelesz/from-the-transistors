@@ -1,3 +1,6 @@
+import instruction_formats.conditions as conditions
+
+
 data_processing_opcode_map = {
     "and": 0b0000,
     "eor": 0b0001,
@@ -15,11 +18,6 @@ data_processing_opcode_map = {
     "mov": 0b1101,
     "bic": 0b1110,
     "mvn": 0b1111
-}
-
-condition_to_int = {
-    "al": 0b1110,
-    "": 0b1110
 }
 
 register_alias = {
@@ -104,29 +102,11 @@ def data_processing_immediate32(immediate_operands):
     else:
         raise AssertionError(f"Unexpected amount of immediate operands: {', '.join(immediate_operands)}")
 
-def get_condition_code(op, cond):
-    #if cond and op.lower() in ["cmp"]:
-    #    raise Exception(f"Operation '{op}' can't have a condition")
-
-    if op.lower() in ["cmp", "cmn", "tst", "teq"]:
-        S = 0b1
-    elif cond and cond[-1].lower() == 's':
-        S = 0b1
-        cond = cond[:-1]
-    else:
-        S = 0b0
-    try:
-        cond = condition_to_int[cond.lower()]
-    except KeyError:
-        raise Exception(f"Unsupported/Unimplemented condition code: {cond}")
-    
-    return cond, S
-
 def data_processing_instruction_encode(op, cond, operands):
     assert len(operands) >= 2, f"Not enough operands for '{op}' operation in: \'{op} {' '.join(operands)}\'"
     
     # condition code and S specifier
-    cond_code, S = get_condition_code(op, cond)
+    cond_code, S = conditions.get_condition_code(op, cond)
 
     # operation code
     opcode = data_processing_opcode_map[op]

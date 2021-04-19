@@ -14,3 +14,4 @@ ORR r5, r2, r3
 mov r5, r2
 bic r5, r2, r3
 mvn r5, r2
+b #36

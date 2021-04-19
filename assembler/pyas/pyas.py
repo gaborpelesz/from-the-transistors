@@ -36,12 +36,12 @@ def main(args):
     args = parse_args(args)
 
     raw_assembly = load_assembly(args.input)
-    preprocessed_assembly = preprocess_assembly(raw_assembly)
-
-    print(preprocessed_assembly)
     
-    instruction_encoder(preprocessed_assembly)
+    preprocessed_assembly = preprocess_assembly(raw_assembly)
+    
+    binary = instruction_encoder(preprocessed_assembly)
 
+    print([hex(b) for b in binary])
 
 if __name__ == "__main__":
     main(sys.argv)

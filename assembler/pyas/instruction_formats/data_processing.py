@@ -155,7 +155,6 @@ def data_processing_instruction_encode(op, cond, operands):
 
     else:
     # 3. second source operand is a rotation mnemonic (like in 'MOV R1, R2, LSL #2')
-        print(op)
         if len(operands) == 3 and operands[2].split(" ")[0].lower() in shift_opcode_map.keys() and op in two_operand_ops:
             Rn = 0b0000
             if op in ["cmp", "cmn", "tst", "teq"]: # CMP saves the first reg into Rn and not Rd
@@ -164,7 +163,6 @@ def data_processing_instruction_encode(op, cond, operands):
             I = 0b0
             Rm = reg_to_int(operands[1])
             shift_operation, shift_operand = operands[2].split(" ")
-            print(Rm, shift_operand.lower())
             shifter_operand = data_processing_register_shift(Rm, shift_operation, shift_operand)
 
         elif not (op in two_operand_ops) and len(operands) > 2:
@@ -191,5 +189,4 @@ def data_processing_instruction_encode(op, cond, operands):
         else:
             raise Exception(f"Unsupported shifter mnemonic or unexpected operand at: {op}{cond} {', '.join(operands)}")
     
-    print(cond_code, I, opcode, S, Rn, Rd, shifter_operand)
     return cond_code << 28 | I << 25 | opcode << 21 | S << 20 | Rn << 16 | Rd << 12 | shifter_operand

@@ -25,5 +25,4 @@ def instruction_encoder(labeled_instructions):
         else:
             raise Exception(f"Unknown operation '{op}' in instruction: {instruction}")
 
-
-    print([hex(bin_line) for bin_line in binary])
+    return binary

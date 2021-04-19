@@ -34,7 +34,7 @@ Registers:
     - R15: Program counter
     - CPSR: Current program status register
 
-Currently supporting the most basic/common instructions:
+Currently planning to support the most basic/common instructions:
 - **LDR**: Load word
 - **STR**: Store word
 - **ADD**: addition

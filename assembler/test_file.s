@@ -1,9 +1,16 @@
-mov R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word
-mov R1, R2
-mov R1, R2, LSL #2
-add R1, R1, #32
-add R1, R1, #63, 28 
-add R1, R1, R2
-add R1, R2, R3, LSL #4
-cmp r1, r2
-;add R2, R1, R2, LSR #5
+and r1, r2, r3, LSL #5
+eor r1, r6, r2
+sub r2, r1, r3
+rsb r5, r1, r2
+add r1, r2, r3, LSL #24
+adc r5, r2, r3
+sbc r1, r6, r2, LSL #2
+rsc r5, r2, r3
+tst r5, r3
+teq r5, r2
+cmp r5, r2
+cmn r5, r2
+ORR r5, r2, r3
+mov r5, r2
+bic r5, r2, r3
+mvn r5, r2

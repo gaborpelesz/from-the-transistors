@@ -17,9 +17,11 @@ Generate text file with character coded hexadecimals
 ## Instruction set
 
 So far implemented:
-- MOV, ADD, CMP (and probably a lot more, TODO test these!!)
-- immediates, rotation immediates (e.g., `MOV R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word`)
-- LSL, LSR and other register shifts (excluding RRX because it is essentially ROR with immediate #0)
+- data processing instructions
+    - immediates, rotation immediates (e.g., `MOV R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word`)
+    - LSL, LSR and other register shifts for data processing instructions (excluding RRX because it is essentially ROR with immediate #0)
+    - supported instructions:
+        - all data processing instructions (MOV, ADD, AND, CMP, TST, ...)
 
 Registers:
 - general purpose registers: R0...R11, except

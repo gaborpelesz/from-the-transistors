@@ -38,6 +38,15 @@ shift_opcode_map = {
     'ror': [0b110, 0b0111]
 }
 
+two_operand_ops = [
+    'mov',
+    'cmp',
+    'mvn',
+    'cmn',
+    'tst',
+    'teq'
+]
+
 def reg_to_int(reg):
     if not reg[0].lower() == 'r':
         try:
@@ -96,10 +105,10 @@ def data_processing_immediate32(immediate_operands):
         raise AssertionError(f"Unexpected amount of immediate operands: {', '.join(immediate_operands)}")
 
 def get_condition_code(op, cond):
-    if cond and op.lower() in ["cmp"]:
-        raise Exception(f"Operation '{op}' can't have a condition")
+    #if cond and op.lower() in ["cmp"]:
+    #    raise Exception(f"Operation '{op}' can't have a condition")
 
-    if op.lower() in ["cmp"]:
+    if op.lower() in ["cmp", "cmn", "tst", "teq"]:
         S = 0b1
     elif cond and cond[-1].lower() == 's':
         S = 0b1
@@ -114,7 +123,7 @@ def get_condition_code(op, cond):
     return cond, S
 
 def data_processing_instruction_encode(op, cond, operands):
-    assert len(operands) >= 2, f"Not enough operands for '{op}' operation: {operands}"
+    assert len(operands) >= 2, f"Not enough operands for '{op}' operation in: \'{op} {' '.join(operands)}\'"
     
     # condition code and S specifier
     cond_code, S = get_condition_code(op, cond)
@@ -127,18 +136,18 @@ def data_processing_instruction_encode(op, cond, operands):
 
     # source operands (Rn [, Rm|shift [, shift]])
     # 1. if first source operand is an immediate (like in 'MOV R1, #63')
-    if operands[1].startswith("#"):
+    if operands[1].startswith("#") and op in two_operand_ops:
         Rn = 0b0000
-        if op in ["cmp"]: # CMP saves the first reg into Rn and not Rd
+        if op in ["cmp", "cmn", "tst", "teq"]: # CMP saves the first reg into Rn and not Rd
             Rn = Rd
             Rd = 0b0000
         I = 0b1
         shifter_operand = data_processing_immediate32(operands[1:])
 
     # 2. if only one source operand but it is not an immediate than it must be a register (like in 'MOV R1, R2')
-    elif len(operands) == 2:
+    elif len(operands) == 2 and op in two_operand_ops:
         Rn = 0b0000
-        if op in ["cmp"]: # CMP saves the first reg into Rn and not Rd
+        if op in ["cmp", "cmn", "tst", "teq"]: # CMP saves the first reg into Rn and not Rd
             Rn = Rd
             Rd = 0b0000
         I = 0b0
@@ -146,9 +155,10 @@ def data_processing_instruction_encode(op, cond, operands):
 
     else:
     # 3. second source operand is a rotation mnemonic (like in 'MOV R1, R2, LSL #2')
-        if len(operands) == 3 and operands[2].split(" ")[0].lower() in shift_opcode_map.keys():
+        print(op)
+        if len(operands) == 3 and operands[2].split(" ")[0].lower() in shift_opcode_map.keys() and op in two_operand_ops:
             Rn = 0b0000
-            if op in ["cmp"]: # CMP saves the first reg into Rn and not Rd
+            if op in ["cmp", "cmn", "tst", "teq"]: # CMP saves the first reg into Rn and not Rd
                 Rn = Rd
                 Rd = 0b0000
             I = 0b0
@@ -157,25 +167,26 @@ def data_processing_instruction_encode(op, cond, operands):
             print(Rm, shift_operand.lower())
             shifter_operand = data_processing_register_shift(Rm, shift_operation, shift_operand)
 
+        elif not (op in two_operand_ops) and len(operands) > 2:
     # 4. second source operand is an immediate like in 'ADD R1, R1, #32'
-        elif operands[2].startswith("#"):
-            Rn = reg_to_int(operands[1])
-            I = 0b1
-            shifter_operand = data_processing_immediate32(operands[2:])
+            if not (op in two_operand_ops) and operands[2].startswith("#"):
+                Rn = reg_to_int(operands[1])
+                I = 0b1
+                shifter_operand = data_processing_immediate32(operands[2:])
 
     # 5. if only two source operands but it is not an immediate than it must be a register
-        elif len(operands) == 3:
-            Rn = reg_to_int(operands[1])
-            I = 0b0
-            shifter_operand = reg_to_int(operands[2])
+            elif not (op in two_operand_ops) and len(operands) == 3:
+                Rn = reg_to_int(operands[1])
+                I = 0b0
+                shifter_operand = reg_to_int(operands[2])
 
     # 6. if more than three source operands present than it must be 2 registers with a rotation mnemonic
-        elif len(operands) == 4 and operands[3].split(" ")[0].lower() in shift_opcode_map.keys():
-            Rn = reg_to_int(operands[1])
-            I = 0b0
-            Rm = reg_to_int(operands[2])
-            shift_operation, shift_operand = operands[3].split(" ")
-            shifter_operand = data_processing_register_shift(Rm, shift_operation, shift_operand)
+            elif not (op in two_operand_ops) and len(operands) == 4 and operands[3].split(" ")[0].lower() in shift_opcode_map.keys():
+                Rn = reg_to_int(operands[1])
+                I = 0b0
+                Rm = reg_to_int(operands[2])
+                shift_operation, shift_operand = operands[3].split(" ")
+                shifter_operand = data_processing_register_shift(Rm, shift_operation, shift_operand)
 
         else:
             raise Exception(f"Unsupported shifter mnemonic or unexpected operand at: {op}{cond} {', '.join(operands)}")

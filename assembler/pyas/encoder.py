@@ -11,7 +11,7 @@ def instruction_encoder(labeled_instructions):
     
     for labels, instruction in labeled_instructions:
         op_cond, operands = instruction.split(" ", 1)
-        op_cond = op_cond.strip()
+        op_cond = op_cond.strip().lower()
         operands = [operand.strip() for operand in operands.split(",")]
 
         # find operation which might have a condition too

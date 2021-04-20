@@ -21,11 +21,16 @@ def offset_sign(ch):
     return U
 
 def load_store_instruction_encode(op, cond, operands):
-    cond_code, _ = get_condition_code(op, cond)
-
-    B = 0b0 #len(cond) == 1 and cond[0] == 'b' or \
-        #len(cond) == 2 and cond[0] == 'b' and cond[1] == 't' or \
-        #len(cond) == 3 # TODO finish
+    if len(cond) >= 2:
+        if cond == 'bt':
+            B = 0b1
+            cond_code, _ = get_condition_code(op, "")
+        else:
+            cond_code, _ = get_condition_code(op, cond[:2])
+            B = len(cond) > 2 and cond.startswith('b')
+    else:
+        cond_code, _ = get_condition_code(op, "")
+        B = cond != '' and cond.startswith('b')
 
     L = load_store_opcode_map[op]
 

@@ -1,10 +1,14 @@
-from instruction_formats.data_processing import data_processing_instruction_encode
-from instruction_formats.data_processing import data_processing_opcode_map
+from instruction_formats.data_processing import data_processing_instruction_encode,\
+                                                data_processing_opcode_map
 
 from instruction_formats.branching import branching_instruction_encode
 
+from instruction_formats.load_store import load_store_instruction_encode,\
+                                           load_store_opcode_map
+
 supported_operations = [
     *data_processing_opcode_map.keys(),
+    *load_store_opcode_map.keys(),
     "b" # branching instructions
 ]
 
@@ -30,13 +34,18 @@ def instruction_encoder(labeled_instructions):
 
         assert not op is None, f"Unknown operation '{op}' in instruction: {instruction}"
 
-        print(op, cond, operands)
+        #print(op, cond, operands)
         if op in data_processing_opcode_map.keys():
             assert len(operands) >= 2, f"Operands missing for operation '{op}' in instruction {instruction}"            
             binary.append(data_processing_instruction_encode(op, cond, operands))
+
+        elif op in load_store_opcode_map.keys():
+            binary.append(load_store_instruction_encode(op, cond, operands))
+
         elif op == "b": # branching
             assert len(operands) == 1, f"Unexpected number of operands for operation '{op}' in instruction {instruction}"
             binary.append(branching_instruction_encode(instruction_address, op, cond, operands))
+
         else:
             raise Exception(f"Unknown operation '{op}' in instruction: {instruction}")
 

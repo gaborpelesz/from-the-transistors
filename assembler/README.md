@@ -21,15 +21,22 @@ Generate text file with character coded hexadecimals
 **So far implemented**:
 - data processing instructions
     - immediates, rotation immediates (e.g., `MOV R1, #63, 28 ; rotate 63 by 28 bits on a 32bit word`)
-    - LSL, LSR and other register shifts for data processing instructions (excluding RRX because it is essentially ROR with immediate #0)
+    - LSL, LSR and all the other register shifts for data processing instructions (excluding RRX because it is essentially ROR with immediate #0)
     - supported instructions:
         - all data processing instructions (MOV, ADD, AND, CMP, TST, ...)
 - branch instructions
     - B, BL with branching immediates (e.g., `B #36`)
+- labeling instructions and using them for example in branching
 
 **TODOs**:
-- map labels to addresses
+
 - LDR and STR operations to load and store memory
+- Refactors:
+    - create an Instruction class to store valuable information about instruction lines for error handling and helping error messages to be more informative. This class should represent a single line of instruction and it should store:
+        - no. of line in the raw assembly
+        - no. of instruction in the preprocessed assembly
+        - the address of the instruction (no. of instruction * 4)
+        - labels for this instruction
 
 Registers:
 - general purpose registers: R0...R11, except

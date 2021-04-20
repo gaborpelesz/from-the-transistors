@@ -1,4 +1,4 @@
-import instruction_formats.conditions as conditions
+from instruction_formats.utils import get_condition_code 
 
 def form_branching_immediate24(instruction_address, immediate_operands):
     assert immediate_operands[0].startswith("#") and len(immediate_operands) == 1
@@ -25,25 +25,25 @@ def branching_instruction_encode(instruction_address, op, cond, operands):
         if len(cond) == 1:
             assert cond[0] == 'l', f"Unknown operation {op}{cond} in instruction: {op}{cond} {', '.join(operands)}"
             L = 0b1
-            cond_code, _ = conditions.get_condition_code(op, "")
+            cond_code, _ = get_condition_code(op, "")
 
         # in case of only two conditions characters the operation
         # must be B because all conditions are two char wide
         elif len(cond) == 2:
             L = 0b0
-            cond_code, _ = conditions.get_condition_code(op, cond)
+            cond_code, _ = get_condition_code(op, cond)
 
-        # in case of three condition characters the operation is a BL
+        # in case of three condition characters the operation must be a BL
         # with additional condition flags to watch for
         elif len(cond) == 3:
             assert cond[0] == 'l', f"Unknown operation {op}{cond} in instruction: {op}{cond} {', '.join(operands)}"
             L = 0b1
-            cond_code, _ = conditions.get_condition_code(op, cond[1:])
+            cond_code, _ = get_condition_code(op, cond[1:])
         else:
             raise Exception(f"Unexpected amount of conditions in instruction: {op}{cond} {', '.join(operands)}")
     else:
         L = 0b0
-        cond_code, _ = conditions.get_condition_code(op, cond[1:])
+        cond_code, _ = get_condition_code(op, cond[1:])
 
     try:
         signed_immed_24 = form_branching_immediate24(instruction_address, operands)

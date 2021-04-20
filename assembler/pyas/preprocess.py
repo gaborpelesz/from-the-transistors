@@ -25,7 +25,7 @@ def label_instruction(lines):
         labels = components[:-1]
         instruction = components[-1]
 
-        # prepare for multi label too
+        # assume multiple labels too
         for label in labels:
             label = label.strip()
             
@@ -42,17 +42,37 @@ def label_instruction(lines):
             labeled_instructions[-1][1] = instruction 
             labeled_instructions.append([[], ""])
 
-    return labeled_instructions[:-1] # there is always one empty instruction at the end
+    labeled_instructions = labeled_instructions[:-1] # there is always one empty instruction at the end
+
+    # create instruction addresses for labels
+    ordered_labels = list(zip(*labeled_instructions))[0] # transpose and select list of labels
+    label_address_map = {}
+    for i, instruction_labels in enumerate(ordered_labels):
+        for label in instruction_labels:
+            label_address_map[label] = i * 4
+
+    # insert address into places where there are labels
+    for i in range(len(labeled_instructions)):
+        for label in set_of_labels:
+            if labeled_instructions[i][1].find(label) != -1:
+                labeled_instructions[i][1] = labeled_instructions[i][1].replace(label, f"#{label_address_map[label]}")                
+
+    return labeled_instructions
 
 def preprocess_assembly(raw_assembly):
+    """
+        return: list of labeled instruction. Each element of the list is a 2-tuple whose first element
+                contains a list of labels (which can be an empty list) and the second element contains
+                the actual instruction.
+    """
+
     lines = raw_assembly.split("\n")
 
     # remove single line comments, leading and trailing spaces
     lines = [line.split(";")[0].strip() for line in lines]
 
     # getting the labels and their corresponding lines on one line if they weren't not
-    labeled_instructions = label_instruction(lines)
-
     # insert actual PC address offsets in place of labels
+    labeled_instructions = label_instruction(lines)
 
     return labeled_instructions

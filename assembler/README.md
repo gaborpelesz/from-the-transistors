@@ -27,10 +27,11 @@ Generate text file with character coded hexadecimals
 - branch instructions
     - B, BL with branching immediates (e.g., `B #36`)
 - labeling instructions and using them for example in branching
+- LDR and STR operations to load and store memory (including B option and all address and offset modes)
+- conditions for all instruction
 
 **TODOs**:
 
-- LDR and STR operations to load and store memory
 - Refactors:
     - create an Instruction class to store valuable information about instruction lines for error handling and helping error messages to be more informative. This class should represent a single line of instruction and it should store:
         - no. of line in the raw assembly

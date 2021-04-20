@@ -6,7 +6,7 @@ This README is ahead of a major revision.
 
 ## Quick note
 
-This assembler has the only purpose to directly translate the instruction for my ARM7-based CPU. The instruction set is more probably just a subset of the full ISA. It only supports the most basic instruction that are required by the any of the software to run that build on top of this project.
+This assembler has the only purpose to directly translate the instruction for my ARM7-based CPU. The instruction set is more probably just a subset of the full ISA. It only supports the most basic instruction that are required by any of the software to run that build on top of this project.
 
 ## Running
 

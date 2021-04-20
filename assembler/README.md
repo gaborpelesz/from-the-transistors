@@ -1,5 +1,7 @@
 # PYAS - Python ARMv4 Assembler
 
+This README is ahead of a major revision.
+
 ### TODO maybe move some of this documentation into my CPU's page
 
 ## Quick note

@@ -10,21 +10,21 @@
     
     - Note: Writing happens on posedge, reading should happen 
             on negedge outside while using this module
-            
-    RELATED QUESTIONS:
-        - The reg bank has 2 read inputs and outputs. What happens when we read 
-          two registers in a decode phase, and when we want to read the PC to 
-          prefetch the next instruction?
+
 */
 module reg_bank(
-    input  wire CLK,
-    input  wire [3:0]  READ_A_SELECT, READ_B_SELECT, 
-                       WRITE_SELECT, 
-           wire        WRITE_EN,
-           wire [31:0] WRITE_DATA,
-           wire        WRITE_PC_EN,
-           wire [31:0] WRITE_PC_DATA,
-    output wire [31:0] READ_A_DATA, READ_B_DATA, READ_PC_DATA
+    input  wire clk,
+           wire [3:0]  read_A_select,
+           wire [3:0]  read_B_select,
+           wire        read_B_en,     // output to the B bus should be tri-state
+           wire [3:0]  write_select,
+           wire        write_en,
+           wire [31:0] write_data,
+           wire        write_pc_en,
+           wire [31:0] write_pc_data,
+    output wire [31:0] read_A_data,
+           reg  [31:0] read_B_data,
+           wire [31:0] read_pc_data
     );
     
     localparam PC_SELECT = 4'd15;
@@ -32,18 +32,23 @@ module reg_bank(
     reg [31:0] BANK [0:15];
     
     /* Write */
-    always @ (posedge CLK)
+    always @ (posedge clk)
     begin
-        if (WRITE_EN)
-            BANK[WRITE_SELECT] <= WRITE_DATA;
-        if (WRITE_PC_EN && WRITE_SELECT != PC_SELECT)
-            BANK[4'd15] <= WRITE_PC_DATA;
+        if (write_en)
+            BANK[write_select] <= write_data;
+
+        // only write PC if we currently don't modify it from the ALU
+        if (write_pc_en && !(write_select == PC_SELECT && write_en))
+            BANK[4'd15] <= write_pc_data;
+            
+        if (read_B_en) // B bus tri-state
+            read_B_data <= BANK[read_B_select];
+        else
+            read_B_data <= 32'bz;
     end
     
     /* Read lines */
-    assign READ_A_DATA  = BANK[READ_A_SELECT];
-    assign READ_B_DATA  = BANK[READ_B_SELECT];
-    assign READ_PC_DATA = BANK[PC_SELECT];
-    
-    // assign pc = BANK[14];
+    assign read_A_data  = BANK[read_A_select];
+    assign read_pc_data = BANK[PC_SELECT];
+
 endmodule

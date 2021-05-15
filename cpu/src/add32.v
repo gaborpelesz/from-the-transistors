@@ -1,19 +1,22 @@
 `timescale 1ns / 1ps
 
-module mADD32(
-    input  wire [31:0] IN1, IN2,
-           wire CIN, // carry input, set it to HIGH to have no affect (in SUB)
-    output wire [31:0] OUT,
-           wire COUT, // carry output
-           wire OVERFLOW
+module add32(
+    input  wire [31:0] in_data0, 
+           wire [31:0] in_data1,
+           wire        in_carry, // carry input, set it to HIGH to have no affect (in SUB)
+    output wire [31:0] out_data,
+           wire        out_carry, // carry output
+           wire        out_overflow
     );
     
-    wire [32:0] tmp_OUT;
+    wire [32:0] result;
     
-    assign tmp_OUT = IN1 + IN2 + CIN;
-    assign OUT = tmp_OUT[31:0];
-    assign COUT = tmp_OUT[32]; // carry
-    assign OVERFLOW = ( IN1[31] &  IN2[31] & ~OUT[31]) | // both input is positive and result is negative
-                      (~IN1[31] & ~IN2[31] &  OUT[31]);  // both input is negative and result is positive
+    assign result       = in_data0 + in_data1 + in_carry;
+    assign out_data     = result[31:0];
+    
+    assign out_carry    = result[32];
+    
+    assign out_overflow = ( in_data0[31] &  in_data1[31] & ~out_data[31]) | // both input is positive and result is negative
+                          (~in_data0[31] & ~in_data1[31] &  out_data[31]);  // both input is negative and result is positive
     
 endmodule

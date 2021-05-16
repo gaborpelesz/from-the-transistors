@@ -1,86 +1,99 @@
 `timescale 1ns / 1ps
 
 module cpu(
-    input wire clk
+    input  wire clk,
+                reset,
+                TxD,
+                RxD,
+                BTNR,
+           wire [7:0] SW,
+    output wire [15:0] LED
     );
     
+    assign LED = 16'b0;
+    
     /* BUSES */
-    wire [31:0] data_in_bus, data_out_bus;    // memory in-out
-    wire [31:0] address_bus; // memory addressing
+    wire [31:0] data_in_bus, data_out_bus; // memory in-out
+    wire [31:0] address_bus;               // memory addressing
     wire [31:0] ALU_bus;
-    reg  [31:0] A_bus;
-    reg  [31:0] B_bus;
+    wire [31:0] A_bus;
+    wire [31:0] B_bus;
     wire [31:0] incrementer_bus;
     wire [31:0] PC_bus;
+    wire [31:0] instruction_bus;
     
     /* Control signals */
-    wire c_mem_read_en;
-    wire c_mem_write_en;
+    wire        c_mem_read_en;
+    wire        c_mem_write_en;
     
-    /* Creating a dynamic Memory CLK
-       It runs the memory accesses and internal operations
-       It can stretch indefinitely to allow working with slow peripherals or memory */
-    localparam N_Cycle = 2'b00,
-               S_Cycle = 2'b01,
-               I_Cycle = 2'b10,
-               C_Cycle = 2'b11;
-    reg [1:0] nMREQ_SEQ = S_Cycle; // MSB=nMREQ, LSB=SEQ
-    reg MCLK;
-    // the problem with the below always block is that MCLK won't be assigned to the
-    // block, rather it's value will be updated when the negedge of the CLK happens.
-    // This leads us to an MCLK which is always 0, because it only changes when the CLK gets 0.
-    // It is also not synthesisable because we can't usse the clock signal in expression.
-    always @ (negedge clk)
-    begin
-        /* Non-sequential cycle, stretching MCLK */
-        if (nMREQ_SEQ == N_Cycle)
-        begin
-            MCLK <= 0;
-            
-            if (data_in_bus != 32'bz)
-            begin
-                nMREQ_SEQ <= S_Cycle;
-            end
-        end
-        
-        /* Sequential cycle, MCLK is CLK */
-        else if (nMREQ_SEQ == S_Cycle)
-        begin
-            MCLK <= clk;
-        end
-        
-        /* Default behavior */
-        else
-        begin
-            nMREQ_SEQ <= S_Cycle;
-            MCLK <= clk;
-        end
-    end // end MCLK
+    wire  [3:0] c_reg_read_A_sel;
+    wire  [3:0] c_reg_read_B_sel;
+    wire        c_reg_read_B_en;
+    wire  [3:0] c_reg_write_sel;
+    wire        c_reg_write_en;
+    wire        c_reg_pc_write_en;
+    wire        c_reg_cpsr_write_en;
+    wire        c_reset;
+    
+    wire  [1:0] c_address_reg_sel;
+    
+    wire  [7:0] c_barrel_shift_val;
+    wire  [2:0] c_barrel_op_sel;
+    
+    wire  [3:0] c_alu_op_sel;
+    
+    wire        c_data_prov_out_sel;
+    wire        c_data_out_en;
+    /* end Control signals */
+    
+    
+    
+    /* DECODE AND LOGIC CONTROL MODULE INIT */
+    logic_control logic_control_inst (.clk(clk),
+                                      .reset(reset),
+                                      .mem_data_prov_instruction(instruction_bus),
+                                      .mem_read_en(c_mem_read_en),
+                                      .mem_write_en(c_mem_write_en),
+                                      .reg_read_A_sel(c_reg_read_A_sel),
+                                      .reg_read_B_sel(c_reg_read_B_sel),
+                                      .reg_read_B_en(c_reg_read_B_en),
+                                      .reg_write_sel(c_reg_write_sel),
+                                      .reg_write_en(c_reg_write_en),
+                                      .reg_pc_write_en(c_reg_pc_write_en),
+                                      .reg_cpsr_write_en(c_reg_cpsr_write_en),
+                                      .address_reg_sel(c_address_reg_sel),
+                                      .barrel_shift_val(c_barrel_shift_val),
+                                      .barrel_op_sel(c_barrel_op_sel),
+                                      .alu_op_sel(c_alu_op_sel),
+                                      .data_prov_out_sel(c_data_prov_out_sel),
+                                      .data_out_en(c_data_out_en),
+                                      .control_reset(c_reset));
     
     /* REGISTER BANK MODULE INIT */
-    wire [3:0] reg_rs, reg_rt, reg_wr, reg_w_en;
-    wire [31:0] reg_wd;
-    wire [31:0] reg_rsd, reg_rtd;
-    reg_bank reg_bank_inst (.clk(clk),
-                            .read_A_select(),
-                            .read_B_select(),
-                            .write_select(),
-                            .write_en(),
+    wire  [3:0] reg_write_cpsr;
+    wire  [3:0] reg_read_cpsr;
+    reg_bank reg_bank_inst (.read_A_select(c_reg_read_A_sel),    // control
+                            .read_B_select(c_reg_read_B_sel),    // control
+                            .read_B_en(),
+                            .write_select(c_reg_write_sel),      // control
+                            .write_en(c_reg_write_en),           // control
                             .write_data(ALU_bus),
-                            .write_pc_en(),
+                            .write_pc_en(c_reg_pc_write_en),     // control
                             .write_pc_data(incrementer_bus),
+                            .write_cpsr_data(reg_write_cpsr),
+                            .write_cpsr_en(c_reg_cpsr_write_en), // control
+                            .reset(c_reset),                     // control
                             .read_A_data(A_bus),
                             .read_B_data(B_bus),
-                            .read_pc_data(PC_bus));
+                            .read_pc_data(PC_bus),
+                            .read_cpsr_data(reg_read_cpsr));
     
     /* ADDRESS REGISTER MODULE INIT */
     wire [31:0] address_reg_inc_bridge;
-    address_register address_register_inst (.clk(clk),
-                                            .in0(ALU_bus),
+    address_register address_register_inst (.in0(ALU_bus),
                                             .in1(PC_bus),
                                             .in2(incrementer_bus),
-                                            .in_select(),
-                                            .perform_address_update(),
+                                            .in_select(c_address_reg_sel),                 // control
                                             .out_mem_address(address_bus),
                                             .out_inc_address(address_reg_inc_bridge));
 
@@ -92,68 +105,42 @@ module cpu(
     wire [31:0] barrel_to_alu_bus;
     wire        barrel_to_alu_carry;
     barrel_shifter barrel_shifter_inst (.in_data(B_bus),
-                                        .shift_value(),  // control
-                                        .in_op_select(), // control
-                                        .in_carry(),     // control
+                                        .shift_value(c_barrel_shift_val),  // control
+                                        .in_op_select(c_barrel_op_sel),    // control
+                                        .in_carry(reg_read_cpsr[1]),                       // control, where does the carry comes from? we should read it from status register, but how?
                                         .out_shifted_data(barrel_to_alu_bus),
                                         .out_carry(barrel_to_alu_carry));
 
     /* ALU MODULE INIT */
-    ALU32 alu32_inst (.in_op_select(),  // control
+    ALU32 alu32_inst (.in_op_select(c_alu_op_sel),      // control
                       .in_data0(A_bus),
                       .in_data1(barrel_to_alu_bus),
                       .in_carry(barrel_to_alu_carry),
-                      .in_neg(),        // control
-                      .in_zero(),       // control
-                      .in_overflow(),   // control
+                      .in_overflow(reg_read_cpsr[0]),   // control
                       .out_data(ALU_bus),
-                      .out_carry(),     // control (CPSR update if S enabled)
-                      .out_neg(),       // control (CPSR update if S enabled)
-                      .out_zero(),      // control (CPSR update if S enabled)
-                      .out_overflow()); // control (CPSR update if S enabled)
+                      .out_neg(reg_read_cpsr[3]),       // control (CPSR update if S enabled)
+                      .out_zero(reg_read_cpsr[2]),      // control (CPSR update if S enabled)
+                      .out_carry(reg_read_cpsr[1]),     // control (CPSR update if S enabled)
+                      .out_overflow(reg_read_cpsr[0])); // control (CPSR update if S enabled)
     
     /* MEMORY (BRAM) INIT */
-    memory #(.NUM_OF_BYTES(800)) ram_inst (.address(address_bus),
+    memory #(.NUM_OF_BYTES(800)) ram_inst (.clk(clk),
+                                           .address(address_bus),
                                            .read_en(c_mem_read_en),
                                            .write_en(c_mem_write_en),
-                                           .write_data(data_out_bus),
+                                           .write_data(B_bus),
                                            .read_data(data_in_bus));
-    
-    /* Pipeline registers */
-    reg fetch_enable = 1'b1;
-    reg decode_enable = 1'b1;
-    reg execute_enable = 1'b1;
-    // fetch-decode
-    reg [31:0] fd_instruction;
-    // decode-execute
-    
-    /* CONTROL */
-    always @ (posedge MCLK)
-    begin
-        /* Fetch stage */
-        if (fetch_enable)
-        begin
-            // send out read request
-            // wait for data and save on MCLK
-            // get current instruction from RAM pointed by PC
-            // increment PC
-        end
-        
-        /* Decode stage */
-        if (decode_enable)
-        begin
-        
-        end
-        
-        /* Execute stage */
-        if (execute_enable)
-        begin
-        end
-    end
-    
-    always @ (negedge MCLK)
-    begin
-        
-    end
+                                           
+    /* MEMORY DATA PROVIDER INIT */
+    // selects between B_bus and Control input
+    mem_data_provider mem_data_provider_inst (.data_in(data_in_bus),
+                                              .path_sel(c_data_prov_out_sel), // control
+                                              .data_out0(B_bus),
+                                              .data_out1(instruction_bus));
+                                              
+    /* WRITE DATA REGISTER INIT */
+    write_data_register write_data_register_inst (.B_bus(B_bus),
+                                                  .data_out_en(c_data_out_en),
+                                                  .data_out(data_out_bus));
     
 endmodule

@@ -11,8 +11,8 @@
     
 module barrel_shifter(
     input  wire [31:0] in_data,
-           wire [7:0]  shift_value, // if immediate it is only 5 bits, if register all bits are used
-           wire [31:0] in_op_select,
+           wire  [7:0] shift_value, // if immediate it is only 5 bits, if register all bits are used
+           wire  [2:0] in_op_select,
            wire        in_carry,
     output reg  [31:0] out_shifted_data,
            reg         out_carry
@@ -27,7 +27,7 @@ module barrel_shifter(
     reg [63:0] rotated_container;
     
     /* Carry */
-    always @ (in_op_select, in_data, shift_value)
+    always @ (*)
     begin
         if (shift_value == 0) // for carry this is the case at every operation
             out_carry = in_carry;
@@ -67,7 +67,7 @@ module barrel_shifter(
     end
     
     /* Shifted output */
-    always @ (in_op_select, in_data, shift_value)
+    always @ (*)
     begin
         if (shift_value == 0) // the operation doesn't matter in this case
             out_shifted_data = in_data;

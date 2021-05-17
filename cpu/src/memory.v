@@ -4,7 +4,6 @@
 module memory #(parameter NUM_OF_BYTES = 800)(
     input  wire        clk,
            wire [31:0] address,
-           wire        read_en,
            wire        write_en,
            wire [31:0] write_data,
     output reg  [31:0] read_data
@@ -25,13 +24,13 @@ module memory #(parameter NUM_OF_BYTES = 800)(
     end
     
     // read on negedge
-    always @ (negedge clk)
+    always @ (*)
     begin
-        if (read_en && address < NUM_OF_BYTES-3)
+        if (address < NUM_OF_BYTES-3)
         begin
-            read_data <= { mem[address+3], mem[address+2], mem[address+1], mem[address] };
+            read_data = { mem[address+3], mem[address+2], mem[address+1], mem[address] };
         end else begin
-            read_data <= 32'bz;
+            read_data = 32'bz;
         end
     end
     

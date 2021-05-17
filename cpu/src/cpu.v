@@ -23,7 +23,6 @@ module cpu(
     wire [31:0] instruction_bus;
     
     /* Control signals */
-    wire        c_mem_read_en;
     wire        c_mem_write_en;
     
     wire  [3:0] c_reg_read_A_sel;
@@ -36,13 +35,14 @@ module cpu(
     wire        c_reset;
     
     wire  [1:0] c_address_reg_sel;
+    wire        c_update_address;
     
     wire  [7:0] c_barrel_shift_val;
     wire  [2:0] c_barrel_op_sel;
     
     wire  [3:0] c_alu_op_sel;
     
-    wire        c_data_prov_out_sel;
+    wire        c_data_prov_b_bus_en;
     wire        c_data_out_en;
     /* end Control signals */
     
@@ -52,7 +52,6 @@ module cpu(
     logic_control logic_control_inst (.clk(clk),
                                       .reset(reset),
                                       .mem_data_prov_instruction(instruction_bus),
-                                      .mem_read_en(c_mem_read_en),
                                       .mem_write_en(c_mem_write_en),
                                       .reg_read_A_sel(c_reg_read_A_sel),
                                       .reg_read_B_sel(c_reg_read_B_sel),
@@ -62,12 +61,14 @@ module cpu(
                                       .reg_pc_write_en(c_reg_pc_write_en),
                                       .reg_cpsr_write_en(c_reg_cpsr_write_en),
                                       .address_reg_sel(c_address_reg_sel),
+                                      .update_address(c_update_address),
                                       .barrel_shift_val(c_barrel_shift_val),
                                       .barrel_op_sel(c_barrel_op_sel),
                                       .alu_op_sel(c_alu_op_sel),
-                                      .data_prov_out_sel(c_data_prov_out_sel),
+                                      .data_prov_b_bus_en(c_data_prov_b_bus_en),
                                       .data_out_en(c_data_out_en),
-                                      .control_reset(c_reset));
+                                      .control_reset(c_reset),
+                                      .out_immediate_value(B_bus));
     
     /* REGISTER BANK MODULE INIT */
     wire  [3:0] reg_write_cpsr;
@@ -95,7 +96,8 @@ module cpu(
                                             .in2(incrementer_bus),
                                             .in_select(c_address_reg_sel),                 // control
                                             .out_mem_address(address_bus),
-                                            .out_inc_address(address_reg_inc_bridge));
+                                            .out_inc_address(address_reg_inc_bridge),
+                                            .update_address(c_update_address));
 
     /* ADDRESS INCREMENTER MODULE INIT */
     address_inc address_inc_inst (.in_address(address_reg_inc_bridge), 
@@ -126,7 +128,6 @@ module cpu(
     /* MEMORY (BRAM) INIT */
     memory #(.NUM_OF_BYTES(800)) ram_inst (.clk(clk),
                                            .address(address_bus),
-                                           .read_en(c_mem_read_en),
                                            .write_en(c_mem_write_en),
                                            .write_data(B_bus),
                                            .read_data(data_in_bus));
@@ -134,7 +135,7 @@ module cpu(
     /* MEMORY DATA PROVIDER INIT */
     // selects between B_bus and Control input
     mem_data_provider mem_data_provider_inst (.data_in(data_in_bus),
-                                              .path_sel(c_data_prov_out_sel), // control
+                                              .in_b_bus_en(c_data_prov_b_bus_en), // control
                                               .data_out0(B_bus),
                                               .data_out1(instruction_bus));
                                               

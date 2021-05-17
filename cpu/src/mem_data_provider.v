@@ -2,13 +2,12 @@
 
 module mem_data_provider(
     input  wire [31:0] data_in,
-           wire        path_sel,
+           wire        in_b_bus_en,
     output wire [31:0] data_out0,
            wire [31:0] data_out1
     );
     
-    // select between output 0 and 1
-    assign data_out0 = path_sel ?   32'bz : data_in;
-    assign data_out1 = path_sel ? data_in :   32'bz;
+    assign data_out0 = in_b_bus_en ? data_in : 32'bz;
+    assign data_out1 = data_in;
     
 endmodule

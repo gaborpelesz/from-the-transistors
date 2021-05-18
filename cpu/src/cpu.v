@@ -10,7 +10,7 @@ module cpu(
     output wire [15:0] LED
     );
     
-    assign LED = 16'b0;
+    //assign LED = 16'b0;
     
     /* BUSES */
     wire [31:0] data_in_bus, data_out_bus; // memory in-out
@@ -73,9 +73,10 @@ module cpu(
     /* REGISTER BANK MODULE INIT */
     wire  [3:0] reg_write_cpsr;
     wire  [3:0] reg_read_cpsr;
-    reg_bank reg_bank_inst (.read_A_select(c_reg_read_A_sel),    // control
+    reg_bank reg_bank_inst (.clk(clk),
+                            .read_A_select(c_reg_read_A_sel),    // control
                             .read_B_select(c_reg_read_B_sel),    // control
-                            .read_B_en(),
+                            .read_B_en(c_reg_read_B_en),
                             .write_select(c_reg_write_sel),      // control
                             .write_en(c_reg_write_en),           // control
                             .write_data(ALU_bus),
@@ -87,7 +88,8 @@ module cpu(
                             .read_A_data(A_bus),
                             .read_B_data(B_bus),
                             .read_pc_data(PC_bus),
-                            .read_cpsr_data(reg_read_cpsr));
+                            .read_cpsr_data(reg_read_cpsr),
+                            .debug_out_R14(LED));
     
     /* ADDRESS REGISTER MODULE INIT */
     wire [31:0] address_reg_inc_bridge;
@@ -120,16 +122,17 @@ module cpu(
                       .in_carry(barrel_to_alu_carry),
                       .in_overflow(reg_read_cpsr[0]),   // control
                       .out_data(ALU_bus),
-                      .out_neg(reg_read_cpsr[3]),       // control (CPSR update if S enabled)
-                      .out_zero(reg_read_cpsr[2]),      // control (CPSR update if S enabled)
-                      .out_carry(reg_read_cpsr[1]),     // control (CPSR update if S enabled)
-                      .out_overflow(reg_read_cpsr[0])); // control (CPSR update if S enabled)
+                      .out_neg(reg_write_cpsr[3]),       // control (CPSR update if S enabled)
+                      .out_zero(reg_write_cpsr[2]),      // control (CPSR update if S enabled)
+                      .out_carry(reg_write_cpsr[1]),     // control (CPSR update if S enabled)
+                      .out_overflow(reg_write_cpsr[0])); // control (CPSR update if S enabled)
     
     /* MEMORY (BRAM) INIT */
     memory #(.NUM_OF_BYTES(800)) ram_inst (.clk(clk),
                                            .address(address_bus),
                                            .write_en(c_mem_write_en),
                                            .write_data(B_bus),
+                                           .reset(c_reset),
                                            .read_data(data_in_bus));
                                            
     /* MEMORY DATA PROVIDER INIT */

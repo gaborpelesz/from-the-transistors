@@ -24,12 +24,15 @@ module logic_control(
            wire [31:0] out_immediate_value
     );
     
-    localparam DECODE_DATA_PROC_IMM_SHIFT = 4'b0000,
-               DECODE_DATA_PROC_REG_SHIFT = 4'b0001,
-               DECODE_DATA_PROC_IMM       = 4'b001x,
-               DECODE_LOAD_STORE_IMM_OFF  = 4'b010x,
-               DECODE_LOAD_STORE_REG_OFF  = 4'b0110,
-               DECODE_BRANCH_AND_BL       = 4'b101x;
+    localparam DECODE_DATA_PROC_IMM_SHIFT  = 4'b0000,
+               DECODE_DATA_PROC_REG_SHIFT  = 4'b0001,
+               DECODE_DATA_PROC_IMM_1      = 4'b0010,
+               DECODE_DATA_PROC_IMM_2      = 4'b0011,
+               DECODE_LOAD_STORE_IMM_OFF_1 = 4'b0100,
+               DECODE_LOAD_STORE_IMM_OFF_2 = 4'b0101,
+               DECODE_LOAD_STORE_REG_OFF   = 4'b0110,
+               DECODE_BRANCH_AND_BL_1      = 4'b1010,
+               DECODE_BRANCH_AND_BL_2      = 4'b1011;
     
     localparam ADDRESS_SELECT_ALU = 2'b00,
                ADDRESS_SELECT_PC  = 2'b01,
@@ -69,18 +72,19 @@ module logic_control(
     localparam DATA_PROV_MEM_READ    = 1'b0,
                DATA_PROV_INSTRUCTION = 1'b1;
     
-    localparam PIPELINE_RESET_1   = 3'b000,
-               PIPELINE_RESET_2   = 3'b001,
-               PIPELINE_FETCH_POS = 3'b010,
-               PIPELINE_FETCH_NEG = 3'b011,
-               PIPELINE_DECODE    = 3'b100;
+    localparam PIPELINE_RESET_1 = 3'b000,
+               PIPELINE_RESET_2 = 3'b001,
+               PIPELINE_FETCH   = 3'b010,
+               PIPELINE_DECODE  = 3'b011,
+               PIPELINE_EXECUTE = 3'b100,
+               PIPELINE_STALL   = 3'b101;
     
     reg [2:0] pipeline_state_reg = PIPELINE_RESET_1;
     
     // fetch-decode pipeline registers
     reg [31:0] fd_instruction; // TODO initialize to NOP
     
-    wire [2:0] decoded_instruction_type; 
+    wire [3:0] decoded_instruction_type; 
     assign decoded_instruction_type = {fd_instruction[27:25], fd_instruction[4]}; // ARM ARM p110   
     
     // decode-execute pipeline registers
@@ -149,10 +153,10 @@ module logic_control(
         else if (pipeline_state_reg == PIPELINE_RESET_2)
         begin
             control_reset      <= DISABLE;
-            pipeline_state_reg <= PIPELINE_FETCH_POS;
+            pipeline_state_reg <= PIPELINE_FETCH;
         end
         
-        else if (pipeline_state_reg == PIPELINE_FETCH_POS)
+        else if (pipeline_state_reg == PIPELINE_FETCH)
         begin
             fd_instruction     <= mem_data_prov_instruction;
             update_address     <= ENABLE;
@@ -168,7 +172,7 @@ module logic_control(
         
             update_address <= DISABLE; // fetch enables the update, here we need to disable it
         
-            if (decoded_instruction_type == DECODE_DATA_PROC_IMM)
+            if (decoded_instruction_type == DECODE_DATA_PROC_IMM_1 || decoded_instruction_type == DECODE_DATA_PROC_IMM_2)
             begin
                 de_immediate_value  <= {24'b0, fd_instruction[7:0]};
                 
@@ -183,6 +187,7 @@ module logic_control(
                 de_reg_read_A_sel <= fd_instruction[19:16];
                 de_reg_read_B_sel <= R0;
                 de_reg_write_sel  <= fd_instruction[15:12];
+                de_reg_write_en   <= ENABLE;
                 
                 // B bus tri-state
                 de_reg_read_B_en       <= DISABLE;
@@ -192,15 +197,48 @@ module logic_control(
                 // check for S bit if set
                 de_reg_cpsr_write_en   <= fd_instruction[20];
             end
+            
+            pipeline_state_reg <= PIPELINE_EXECUTE;
         end
+        
+        else if (pipeline_state_reg == PIPELINE_EXECUTE)
+        begin
+            immediate_value <= de_immediate_value;
+            
+            // get ALU operation
+            alu_op_sel <= de_alu_op_sel;
+            
+            // shifter operation is a ROR with a shifter value = rotate_imm * 2, where rotate_imm = instruction[11:8]
+            barrel_op_sel    <= de_barrel_op_sel;
+            barrel_shift_val <= de_barrel_shift_val;
+            
+            // read Rn to A bus, and set the destination register. Register B bus is disabled.
+            reg_read_A_sel <= de_reg_read_A_sel;
+            reg_read_B_sel <= de_reg_read_B_sel;
+            reg_write_sel  <= de_reg_write_sel;
+            reg_write_en   <= de_reg_write_en;
+            
+            // B bus tri-state
+            reg_read_B_en      <= de_reg_read_B_en;
+            imm_output_en      <= de_imm_output_en;
+            data_prov_b_bus_en <= de_data_prov_b_bus_en;
+            
+            // check for S bit if set
+            reg_cpsr_write_en <= de_reg_cpsr_write_en;
+            
+            pipeline_state_reg <= PIPELINE_STALL;
+        end
+        
+        else
+            pipeline_state_reg <= PIPELINE_STALL;
     end
     
-    always @ (negedge clk)
+    /*always @ (negedge clk)
     begin
         if (pipeline_state_reg == PIPELINE_FETCH_NEG)
         begin
 
         end
-    end
+    end*/
     
 endmodule

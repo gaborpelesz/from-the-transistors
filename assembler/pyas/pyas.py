@@ -11,6 +11,9 @@ def load_assembly(input_path):
 
     return raw_assembly
 
+def write_binary(words: list):
+    pass
+
 def parse_args(args):
     args = args[1:] # args[0] is the called path
 
@@ -42,6 +45,9 @@ def main(args):
     binary = instruction_encoder(preprocessed_assembly)
 
     print([hex(b) for b in binary])
+    
+    for i, b in enumerate(binary):
+        print(f"0x{i:0>4x}: {b:b}")
 
 if __name__ == "__main__":
     main(sys.argv)

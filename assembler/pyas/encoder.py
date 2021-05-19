@@ -13,7 +13,7 @@ supported_operations = [
 ]
 
 
-def instruction_encoder(labeled_instructions):
+def instruction_encoder(labeled_instructions) -> 'list[int]': 
     binary = []
     
     for i, (labels, instruction) in enumerate(labeled_instructions):

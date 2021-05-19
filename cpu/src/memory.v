@@ -19,15 +19,25 @@ module memory #(parameter NUM_OF_BYTES = 800)(
     begin
         if (reset)
         begin
+            /*
             // init 0x0000 with:
-            //  - MOV R5, #5
+            //  - MOV R14, #5
             //                                      cond mod  opc S  Rn   Rd  rotimm  immed_8                            
             {mem[3], mem[2], mem[1], mem[0]} <= 32'b0000_001_1101_0_0000_1110__0000__00000101;
                                                   //0000_0011_1010_0000_0101__0000__0000_0101;
+            */                                    
+            // MOV R0, #5
+            {mem[3], mem[2], mem[1], mem[0]}   <= 32'b1110_001_1101_0_0000_0000_0000_00000101;
+            // MOV R1, #15
+            {mem[7], mem[6], mem[5], mem[4]}   <= 32'b1110_001_1101_0_0000_0001_0000_00001111;
+            // ADD R14, R0, R1
+            {mem[11], mem[10], mem[9], mem[8]} <= 32'b1110_000_0100_0_0000_1110_00000_00_0_0001;
                                                  
-            for (i = 4; i < NUM_OF_BYTES; i = i + 1)
+            for (i = 12; i < NUM_OF_BYTES; i = i + 4)
             begin
-                mem[i] <= 8'b0;
+                // because no branch, memory should be full of NOP
+                {mem[i+3], mem[i+2], mem[i+1], mem[i]} <= 32'b11100001101000000000000000000000;
+                //mem[i] <= 8'b0;
             end
         end
         else if (write_en && address < NUM_OF_BYTES-3)

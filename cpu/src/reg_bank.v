@@ -35,7 +35,7 @@ module reg_bank(
     localparam PC_SELECT = 4'd15;
     
     reg [31:0] BANK [0:15]; // 16 x 32bit registers R0-R15, where R15 is the PC
-    reg  [3:0] cpsr;        // reduced Current Program Status Register, leaving only the N,Z,C,V bits
+    reg  [3:0] cpsr = 4'b0000;        // reduced Current Program Status Register, leaving only the N,Z,C,V bits
 
  
     integer i = 0;
@@ -53,88 +53,34 @@ module reg_bank(
         begin
             // deal with status register
             if (write_cpsr_en)
-            begin
-                cpsr           <= write_cpsr_data;
-                read_cpsr_data <= write_cpsr_data;
-            end
-            else
-                read_cpsr_data <= cpsr;
-        
+                cpsr <= write_cpsr_data;
+
             /* Write to PC from Address incrementer */
             // only write PC if we currently don't modify it from the ALU
             if (write_pc_en && !(write_select == PC_SELECT && write_en))
-            begin
                 BANK[PC_SELECT] <= write_pc_data;
-                
-                // B bus tri-state
-                if (read_B_en) 
-                    if (PC_SELECT == read_B_select)
-                        read_B_data <= write_pc_data;
-                    else
-                        read_B_data <= BANK[read_B_select];
-                else
-                    read_B_data <= 32'bz;
-                    
-                // A bus
-                if (PC_SELECT == read_A_select)
-                    read_A_data <= write_pc_data;
-                else
-                    read_A_data <= BANK[read_A_select];
-                
-                
-                /* Read lines */
-                read_pc_data <= write_pc_data;
-                
-                /* DEBUG OUTPUT */
-                debug_out_R14 <= BANK[4'd14][15:0];
-            end
             
             /* Normal register write */
             else if (write_en)
-            begin
                 BANK[write_select] <= write_data;
-                
-                // B bus tri-state
-                if (read_B_en) 
-                    if (write_select == read_B_select)
-                        read_B_data <= write_data;
-                    else
-                        read_B_data <= BANK[read_B_select];
-                else
-                    read_B_data <= 32'bz;
-                    
-                // A bus
-                if (write_select == read_A_select)
-                    read_A_data <= write_data;
-                else
-                    read_A_data <= BANK[read_A_select];
-                
-                /* Read lines */
-                if (PC_SELECT == write_select)
-                    read_pc_data <= write_data;
-                else
-                    read_pc_data <= BANK[PC_SELECT];
-                
-                /* DEBUG OUTPUT */
-                if (write_select == 4'd14)
-                    debug_out_R14 <= write_data;
-                else
-                    debug_out_R14 <= BANK[4'd14][15:0];
-            end
-            
-            /* just read cycle */
-            else
-            begin
-                if (read_B_en)
-                    read_B_data <= BANK[read_B_select];
-                else
-                    read_B_data <= 32'bz;
-                    
-                read_A_data   <= BANK[read_A_select];
-                read_pc_data  <= BANK[PC_SELECT];
-                debug_out_R14 <= BANK[4'd14][15:0];
-            end
         end
+    end
+    
+    always @ (negedge clk)
+    begin
+        read_cpsr_data <= cpsr;
+    
+        // B bus tri-state
+        if (read_B_en) 
+            read_B_data <= BANK[read_B_select];
+        else
+            read_B_data <= 32'bz;
+
+        read_A_data <= BANK[read_A_select];
+        read_pc_data <= BANK[PC_SELECT];
+            
+        /* DEBUG OUTPUT */
+        debug_out_R14 <= BANK[4'd14][15:0];
     end
     
 

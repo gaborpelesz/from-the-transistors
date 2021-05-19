@@ -11,7 +11,7 @@
     
 module barrel_shifter(
     input  wire [31:0] in_data,
-           wire  [7:0] shift_value, // if immediate it is only 5 bits, if register all bits are used
+           wire [31:0] shift_value, // if immediate it is only 5 bits, if register all bits are used
            wire  [2:0] in_op_select,
            wire        in_carry,
     output reg  [31:0] out_shifted_data,

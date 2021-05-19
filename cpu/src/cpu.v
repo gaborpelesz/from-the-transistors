@@ -2,13 +2,16 @@
 
 module cpu(
     input  wire clk,
-                reset,
-                TxD,
-                RxD,
-                BTNR,
+           wire reset,
+           wire TxD,
+           wire RxD,
+           wire BTNR,
            wire [7:0] SW,
     output wire [15:0] LED
     );
+    
+    //wire clk = BTNR;
+    //wire clk = mclk;
     
     //assign LED = 16'b0;
     
@@ -37,7 +40,7 @@ module cpu(
     wire  [1:0] c_address_reg_sel;
     wire        c_update_address;
     
-    wire  [7:0] c_barrel_shift_val;
+    wire  [31:0] c_barrel_shift_val;
     wire  [2:0] c_barrel_op_sel;
     
     wire  [3:0] c_alu_op_sel;
@@ -51,6 +54,7 @@ module cpu(
     /* DECODE AND LOGIC CONTROL MODULE INIT */
     logic_control logic_control_inst (.clk(clk),
                                       .reset(reset),
+                                      .b_bus_in(B_bus),
                                       .mem_data_prov_instruction(instruction_bus),
                                       .mem_write_en(c_mem_write_en),
                                       .reg_read_A_sel(c_reg_read_A_sel),

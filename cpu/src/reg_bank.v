@@ -1,17 +1,6 @@
 `timescale 1ns / 1ps
 
-/* ARM register bank
-
-    - HOW TO CONNECT?
-        The register bank has two read buses (A and B) and one write bus.
-        The read bus A is directly connected to the ALU, while B is connected
-        to the shifter. (op1 and op2)
-        The write bus (the output) is connected to the output of the ALU.
-    
-    - Note: Writing happens on posedge, reading should happen 
-            on negedge outside while using this module
-
-*/
+/* ARM register bank */
 module reg_bank(
     input  wire        clk,
            wire  [3:0] read_A_select,
@@ -25,17 +14,17 @@ module reg_bank(
            wire  [3:0] write_cpsr_data,
            wire        write_cpsr_en,
            wire        reset,
-    output reg  [31:0] read_A_data,
-           reg  [31:0] read_B_data,
-           reg  [31:0] read_pc_data,
-           reg   [3:0] read_cpsr_data,
-           reg  [15:0] debug_out_R14
+    output wire [31:0] read_A_data,
+           wire [31:0] read_B_data,
+           wire [31:0] read_pc_data,
+           wire  [3:0] read_cpsr_data,
+           wire [15:0] debug_out_R14
     );
     
     localparam PC_SELECT = 4'd15;
     
-    reg [31:0] BANK [0:15]; // 16 x 32bit registers R0-R15, where R15 is the PC
-    reg  [3:0] cpsr = 4'b0000;        // reduced Current Program Status Register, leaving only the N,Z,C,V bits
+    reg [31:0] BANK [0:15];    // 16 x 32bit registers R0-R15, where R15 is the PC
+    reg  [3:0] cpsr = 4'b0000; // reduced Current Program Status Register, leaving only the N,Z,C,V bits
 
  
     integer i = 0;
@@ -66,23 +55,12 @@ module reg_bank(
         end
     end
     
-    always @ (negedge clk)
-    begin
-        read_cpsr_data <= cpsr;
+    /* read lines */
+    assign read_A_data    = BANK[read_A_select];
+    assign read_B_data    = read_B_en ? BANK[read_B_select] : 32'bz;
+    assign read_pc_data   = BANK[PC_SELECT];
+    assign read_cpsr_data = cpsr;
     
-        // B bus tri-state
-        if (read_B_en) 
-            read_B_data <= BANK[read_B_select];
-        else
-            read_B_data <= 32'bz;
-
-        read_A_data <= BANK[read_A_select];
-        read_pc_data <= BANK[PC_SELECT];
-            
-        /* DEBUG OUTPUT */
-        debug_out_R14 <= BANK[4'd14][15:0];
-    end
-    
-
+    assign debug_out_R14  = BANK[4'd14][15:0];
 
 endmodule

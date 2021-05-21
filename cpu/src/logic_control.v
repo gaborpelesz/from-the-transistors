@@ -4,11 +4,12 @@
 module logic_control(
     input  wire        clk,
            wire        reset,
-           wire [31:0] b_bus_in,
+           wire [31:0] reg_shifter_value,
            wire [31:0] mem_data_prov_instruction,
     output reg         mem_write_en,
            reg   [3:0] reg_read_A_sel,
            reg   [3:0] reg_read_B_sel,
+           wire  [3:0] reg_read_C_sel,
            reg         reg_read_B_en,
            reg   [3:0] reg_write_sel,
            reg         reg_write_en,
@@ -80,9 +81,6 @@ module logic_control(
                PIPELINE_EXECUTE = 3'b100,
                PIPELINE_STALL   = 3'b101;
     
-    reg [2:0] pipeline_current_state = PIPELINE_STALL;
-    reg [2:0] pipeline_next_state    = PIPELINE_RESET_1;
-    
     // fetch-decode pipeline registers
     reg [31:0] fd_instruction = 32'b11100001101000000000000000000000; // initialize to NOP (MOV R0, R0)
     
@@ -90,6 +88,23 @@ module logic_control(
     assign decoded_instruction_type = {fd_instruction[27:25], fd_instruction[4]}; // ARM ARM p110   
     
     // decode-execute pipeline registers
+    wire   [3:0] w_de_reg_read_A_sel;
+    wire   [3:0] w_de_reg_read_B_sel;
+    wire   [3:0] w_de_reg_write_sel;
+    wire   [2:0] w_de_barrel_op_sel;
+    wire   [3:0] w_de_alu_op_sel;
+    wire  [31:0] w_de_barrel_shift_val;
+    wire  [31:0] w_de_immediate_value;
+    wire         w_de_reg_read_B_en;
+    wire         w_de_data_prov_b_bus_en;
+    wire         w_de_imm_output_en;
+    wire         w_de_reg_write_en;
+    wire         w_de_reg_pc_write_en;
+    wire         w_de_reg_cpsr_write_en;
+    wire         w_de_data_out_en;
+    wire         w_de_mem_write_en;
+    wire         w_de_addreg_update;
+    wire   [1:0] w_de_addreg_sel;
     reg        de_mem_write_en       = DISABLE;
     reg  [3:0] de_reg_read_A_sel     = R0;
     reg  [3:0] de_reg_read_B_sel     = R0;
@@ -105,312 +120,199 @@ module logic_control(
     reg  [3:0] de_alu_op_sel         = ALU_OP_MOV;
     reg        de_data_prov_b_bus_en = DISABLE;
     reg        de_data_out_en        = DISABLE;
-    reg [31:0] de_immediate_value    = 32'hFFFF_FFFF;
+    reg [31:0] de_immediate_value    = 32'b0;
     reg        de_imm_output_en      = DISABLE;
 
     /* Immediate data provider module init */
     reg         imm_output_en   = DISABLE;
-    reg  [31:0] immediate_value = 32'hFFFF_FFFF;
+    reg  [31:0] immediate_value = 32'b0;
     imm_data_provider imm_data_provider_inst (.in_immediate(immediate_value),
                                               .in_output_en(imm_output_en),
                                               .out_b_bus(out_immediate_value));
     
-    reg [5:0] counter_stop_instead_of_jmp = 6'b0;
+    /* INSTRUCTION DECODER MODULE */
+    instruction_decoder instruction_decoder_inst (fd_instruction,
+                                                  reg_shifter_value,
+                                                  w_de_reg_read_A_sel,
+                                                  w_de_reg_read_B_sel,
+                                                  reg_read_C_sel,
+                                                  w_de_reg_write_sel,
+                                                  w_de_barrel_op_sel,
+                                                  w_de_alu_op_sel,
+                                                  w_de_barrel_shift_val,
+                                                  w_de_immediate_value,
+                                                  w_de_reg_read_B_en,
+                                                  w_de_data_prov_b_bus_en,
+                                                  w_de_imm_output_en,
+                                                  w_de_reg_write_en,
+                                                  w_de_reg_pc_write_en,
+                                                  w_de_reg_cpsr_write_en,
+                                                  w_de_data_out_en,
+                                                  w_de_mem_write_en,
+                                                  w_de_addreg_update,
+                                                  w_de_addreg_sel);
     
-    always @ (posedge clk)
+    /* Pipeline state machine */
+    reg [2:0] pipeline_current_state = PIPELINE_RESET_1;
+    reg [2:0] pipeline_next_state    = PIPELINE_FETCH;
+    always @ (posedge clk) // or negedge, experiment with both
     begin
-        if (counter_stop_instead_of_jmp == 30)
-            pipeline_next_state <= PIPELINE_STALL;
-        else
-        begin
-        
-        counter_stop_instead_of_jmp <= counter_stop_instead_of_jmp + 1; 
-        
         if (reset)
-            pipeline_next_state <= PIPELINE_RESET_1;
-    
-        else if (pipeline_next_state == PIPELINE_RESET_1)
-        begin
-            update_address <= DISABLE;
-        
-            // reset registers in register bank
-            control_reset      <= ENABLE;
-
-            // select Address input
-            address_reg_sel    <= ADDRESS_SELECT_INC;
-            
-            // select Rn, Rm, Rd 
-            reg_read_A_sel     <= R0;
-            reg_read_B_sel     <= R0;
-            reg_write_sel      <= R0;
-            
-            // barrel shifter NOP
-            barrel_shift_val   <= 32'b0;
-            barrel_op_sel      <= BARREL_OP_LSL;
-            
-            // alu set operation to MOV
-            alu_op_sel         <= ALU_OP_MOV;
-            
-            // disable write signals
-            reg_write_en       <= DISABLE;
-            reg_pc_write_en    <= DISABLE;
-            reg_cpsr_write_en  <= DISABLE;
-            
-            // disable memory
-            data_out_en        <= DISABLE;
-            mem_write_en       <= DISABLE;
-            
-            pipeline_next_state <= PIPELINE_RESET_2;
-        end 
-        else if (pipeline_next_state == PIPELINE_RESET_2)
-        begin
-            control_reset       <= DISABLE;
-            pipeline_next_state <= PIPELINE_FETCH;
-        end
-        
-        else if (pipeline_next_state == PIPELINE_FETCH)
-        begin
-            fd_instruction     <= mem_data_prov_instruction;
-            update_address     <= ENABLE;
-            address_reg_sel    <= ADDRESS_SELECT_INC;
-            reg_pc_write_en    <= ENABLE; // hardcoding no branch operation
-            
-            mem_write_en      <= DISABLE;
-            data_out_en       <= DISABLE;
-            
-            reg_cpsr_write_en <= DISABLE;
-            reg_write_en      <= DISABLE;
-            
-            pipeline_next_state <= PIPELINE_DECODE;
-        end
-        
-        else if (pipeline_next_state == PIPELINE_DECODE)
-        begin
-            /* TODO:
-                check if COND (fd_instruction[31:28]) is met with the current CPSR status signals.
-                if not met, set instruction to execute a NOP (MOV R0, R0) operation
-            */
-        
-            update_address  <= DISABLE; // fetch enables the update, here we need to disable it
-            reg_pc_write_en <= DISABLE; // hardcoding no branch operation
-        
-            if (decoded_instruction_type == DECODE_DATA_PROC_IMM_SHIFT)
-            begin
-                // operands
-                de_reg_read_A_sel <= fd_instruction[19:16];
-                de_reg_read_B_sel <= fd_instruction[3:0];
-                de_reg_write_sel  <= fd_instruction[15:12];
-                // de_immediate_value; // not updated. In this case should we use de_immediate_value<=de_immediate_value; or de_immediate_value<=immediate_value?
-                
-                // Barrel shifter and ALU
-                de_barrel_op_sel    <= fd_instruction[11:7] == 0 ? BARREL_OP_RRX : {1'b0, fd_instruction[6:5]};
-                de_alu_op_sel       <= fd_instruction[24:21];
-                
-                // no update, is this okay?
-                // de_addreg_sel <= ADDRESS_SELECT_PC; // is it right if we select PC instead of Incrementer bus? Will it delay?
-                
-                de_reg_write_en       <= ENABLE;
-                de_data_out_en        <= DISABLE;
-                de_reg_pc_write_en    <= DISABLE;
-                de_mem_write_en       <= DISABLE;
-                de_addreg_update      <= DISABLE;
-                de_reg_cpsr_write_en  <= fd_instruction[20]; // check for S bit if set
-                
-                // B bus tri-state
-                de_reg_read_B_en      <= ENABLE;
-                de_data_prov_b_bus_en <= DISABLE;
-                de_imm_output_en      <= DISABLE;
-            end
-            
-            else if (decoded_instruction_type == DECODE_DATA_PROC_REG_SHIFT)
-            begin
-                // operands
-                de_reg_read_A_sel <= fd_instruction[19:16];
-                de_reg_read_B_sel <= fd_instruction[3:0];
-                de_reg_write_sel  <= fd_instruction[15:12];
-                // de_immediate_value; // not updated. In this case should we use de_immediate_value<=de_immediate_value; or de_immediate_value<=immediate_value?
-                
-                // reading the register on the B bus to save it as the shifter value
-                reg_read_B_sel     <= fd_instruction[11:8];
-                
-                // Barrel shifter value will be read on negedge
-                // de_barrel_shift_val
-                de_barrel_op_sel    <= {1'b0, fd_instruction[6:5]}; // no RRX with register shift
-                de_alu_op_sel       <= fd_instruction[24:21];
-                
-                // no update, is this okay?
-                // de_addreg_sel <= ADDRESS_SELECT_PC; // is it right if we select PC instead of Incrementer bus? Will it delay?
-                
-                de_reg_write_en       <= ENABLE;
-                de_data_out_en        <= DISABLE;
-                de_reg_pc_write_en    <= DISABLE;
-                de_mem_write_en       <= DISABLE;
-                de_addreg_update      <= DISABLE;
-                de_reg_cpsr_write_en  <= fd_instruction[20]; // check for S bit if set
-                
-                // B bus tri-state
-                de_reg_read_B_en      <= ENABLE;
-                de_data_prov_b_bus_en <= DISABLE;
-                de_imm_output_en      <= DISABLE;
-            end
-            
-            else if (decoded_instruction_type == DECODE_DATA_PROC_IMM_1 || decoded_instruction_type == DECODE_DATA_PROC_IMM_2)
-            begin
-                de_reg_read_A_sel  <= fd_instruction[19:16];
-                // de_reg_read_B_sel <= R0; // no update? because it won't do anything
-                de_reg_write_sel   <= fd_instruction[15:12];
-                de_immediate_value <= {24'b0, fd_instruction[7:0]};
-                
-                // shifter operation is a ROR with a shifter value = rotate_imm * 2, where rotate_imm = instruction[11:8]
-                de_barrel_op_sel    <= BARREL_OP_ROR;
-                de_alu_op_sel       <= fd_instruction[24:21];
-                
-                de_reg_write_en       <= ENABLE;
-                de_data_out_en        <= DISABLE;
-                de_reg_pc_write_en    <= DISABLE;
-                de_mem_write_en       <= DISABLE;
-                de_addreg_update      <= DISABLE;
-                de_reg_cpsr_write_en  <= fd_instruction[20]; // check for S bit if set
-                
-                // read Rn to A bus, and set the destination register. Register B bus is disabled.
-                // B bus tri-state
-                de_reg_read_B_en       <= DISABLE;
-                de_imm_output_en       <= ENABLE;
-                de_data_prov_b_bus_en  <= DISABLE;                
-            end
-            
-            else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2)
-            begin
-                // In an LDR/STR immediate offset, the following bits are always: P_bit == 1, W_bit == 0 
-                // U bit: addition or subtraction on the base register by the immediate offset
-                de_alu_op_sel <= fd_instruction[23] == 0 ? ALU_OP_SUB : ALU_OP_ADD;
-                // B bit: is unsigned
-                // L bit: is load (or store)
-            
-                // de_reg_read_A_sel
-            
-                /*
-                // operands
-                
-                de_reg_read_B_sel <= fd_instruction[3:0];
-                de_reg_write_sel  <= fd_instruction[19:16];
-                // de_immediate_value; // not updated. In this case should we use de_immediate_value<=de_immediate_value; or de_immediate_value<=immediate_value?
-                
-                // reading the register on the B bus to save it as the shifter value
-                reg_read_B_sel     <= fd_instruction[11:8];
-                reg_read_B_en      <= ENABLE;
-                data_prov_b_bus_en <= DISABLE;
-                imm_output_en      <= DISABLE;
-                
-                // Barrel shifter value will be read on negedge
-                // de_barrel_shift_val
-                de_barrel_op_sel    <= {1'b0, fd_instruction[6:5]}; // no RRX with register shift
-                de_alu_op_sel       <= fd_instruction[24:21];
-                
-                // no update, is this okay?
-                // de_addreg_sel <= ADDRESS_SELECT_PC; // is it right if we select PC instead of Incrementer bus? Will it delay?
-                
-                de_reg_write_en       <= ENABLE;
-                de_data_out_en        <= DISABLE;
-                de_reg_write_pc_en    <= DISABLE;
-                de_mem_write_en       <= DISABLE;
-                de_addreg_update      <= DISABLE;
-                de_reg_cpsr_write_en  <= fd_instruction[20]; // check for S bit if set
-                
-                // B bus tri-state
-                de_reg_read_B_en      <= ENABLE;
-                de_data_prov_b_bus_en <= DISABLE;
-                de_imm_output_en      <= DISABLE;
-                */
-            end
-            
-            else if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
-            begin
-            end
-            
-            else if (decoded_instruction_type == DECODE_BRANCH_AND_BL_1 || decoded_instruction_type == DECODE_BRANCH_AND_BL_2)
-            begin
-            end
-            
-            pipeline_next_state <= PIPELINE_EXECUTE;
-        end
-        
-        else if (pipeline_next_state == PIPELINE_EXECUTE)
-        begin
-            mem_write_en    <= de_mem_write_en;
-            data_out_en     <= de_data_out_en;
-            reg_pc_write_en <= de_reg_pc_write_en;
-            update_address  <= de_addreg_update;
-        
-            immediate_value <= de_immediate_value;
-            
-            // get ALU operation
-            alu_op_sel <= de_alu_op_sel;
-            
-            // shifter operation is a ROR with a shifter value = rotate_imm * 2, where rotate_imm = instruction[11:8]
-            barrel_op_sel    <= de_barrel_op_sel;
-            barrel_shift_val <= de_barrel_shift_val;
-            
-            // read Rn to A bus, and set the destination register. Register B bus is disabled.
-            reg_read_A_sel <= de_reg_read_A_sel;
-            reg_read_B_sel <= de_reg_read_B_sel;
-            reg_write_sel  <= de_reg_write_sel;
-            reg_write_en   <= de_reg_write_en;
-            
-            // check for S bit if set
-            reg_cpsr_write_en <= de_reg_cpsr_write_en;
-            
-            pipeline_next_state <= PIPELINE_FETCH;
-        end
-        
+            pipeline_current_state <= PIPELINE_RESET_1;
         else
-        begin
-            reg_write_en   <= DISABLE;
-            pipeline_next_state <= PIPELINE_STALL;
-        end
-        
-        end // end stop instead of jmp
+            pipeline_current_state <= pipeline_next_state;
     end
     
-    always @ (negedge clk)
+    always @ (*) 
     begin
-        if (pipeline_next_state == PIPELINE_RESET_1)
-        begin
-            // B bus tri-state
-            reg_read_B_en       <= DISABLE;
-            imm_output_en       <= ENABLE;
-            data_prov_b_bus_en  <= DISABLE;
-        end
+        // RESET -> FETCH -> DECODE -> EXECUTE _ 
+        //           _^_                        \
+        //            \_________________________/
+        //
+        case (pipeline_current_state)
+            PIPELINE_RESET_1 : pipeline_next_state = PIPELINE_RESET_2;
+            PIPELINE_RESET_2 : pipeline_next_state = PIPELINE_FETCH;
+            PIPELINE_FETCH   : pipeline_next_state = PIPELINE_DECODE;
+            PIPELINE_DECODE  : pipeline_next_state = PIPELINE_EXECUTE;
+            PIPELINE_EXECUTE : pipeline_next_state = PIPELINE_FETCH;
+            default          : pipeline_next_state = PIPELINE_RESET_1;
+        endcase
+    end
     
-        else if (pipeline_next_state == PIPELINE_EXECUTE)
-        begin
-            // Read the register shifter value from the B bus
-            // then save it as the barrel shifter value
-            if (decoded_instruction_type == DECODE_DATA_PROC_REG_SHIFT)
+    /* NEW PIPELINE - only on posedge */
+    always @ (posedge clk)
+    begin
+        if (pipeline_current_state == PIPELINE_RESET_1)
             begin
-                reg_read_B_en      <= ENABLE;
-                data_prov_b_bus_en <= DISABLE;
-                imm_output_en      <= DISABLE;
+                // signal other components to reset
+                control_reset       <= ENABLE;
             
-                de_barrel_shift_val <= b_bus_in; // read the shifter value from the B bus
+                // reset every output
+                mem_write_en        <= DISABLE;
+                reg_read_A_sel      <= R0;
+                reg_read_B_sel      <= R0;
+                reg_read_B_en       <= ENABLE;
+                reg_write_sel       <= R0;
+                reg_write_en        <= DISABLE;
+                reg_pc_write_en     <= ENABLE;
+                reg_cpsr_write_en   <= DISABLE;
+                address_reg_sel     <= ADDRESS_SELECT_PC;
+                update_address      <= ENABLE;
+                barrel_shift_val    <= 32'b0;
+                barrel_op_sel       <= BARREL_OP_LSL;
+                alu_op_sel          <= ALU_OP_MOV;
+                data_prov_b_bus_en  <= DISABLE;
+                data_out_en         <= DISABLE;
+                immediate_value     <= 32'b0;
+                imm_output_en       <= DISABLE;
+                
+                // reset every pipeline register
+                fd_instruction = 32'b11100001101000000000000000000000; // init NOP
+                de_mem_write_en       <= DISABLE;
+                de_reg_read_A_sel     <= R0;
+                de_reg_read_B_sel     <= R0;
+                de_reg_read_B_en      <= ENABLE;
+                de_reg_write_sel      <= R0;
+                de_reg_write_en       <= DISABLE;
+                de_reg_pc_write_en    <= DISABLE;
+                de_reg_cpsr_write_en  <= DISABLE;
+                de_addreg_sel         <= ADDRESS_SELECT_PC;
+                de_addreg_update      <= DISABLE;
+                de_barrel_shift_val   <= 32'b0;
+                de_barrel_op_sel      <= BARREL_OP_LSL;
+                de_alu_op_sel         <= ALU_OP_MOV;
+                de_data_prov_b_bus_en <= DISABLE;
+                de_data_out_en        <= DISABLE;
+                de_immediate_value    <= 32'b0;
+                de_imm_output_en      <= DISABLE;
             end
-            else if (decoded_instruction_type == DECODE_DATA_PROC_IMM_SHIFT)
+
+        else if (pipeline_current_state == PIPELINE_RESET_2)
             begin
-                de_barrel_shift_val <= {27'b0, fd_instruction[11:7]};
+                control_reset   <= DISABLE;
+                
+                // enable incrementing the PC
+                update_address  <= ENABLE;
+                reg_pc_write_en <= ENABLE;
+                address_reg_sel <= ADDRESS_SELECT_INC;
             end
-            else if (decoded_instruction_type == DECODE_DATA_PROC_IMM_1 || decoded_instruction_type == DECODE_DATA_PROC_IMM_2)
+        
+        else if (pipeline_current_state == PIPELINE_FETCH)
             begin
-                de_barrel_shift_val <= {27'b0, fd_instruction[11:8], 1'b0}; // shift_val = rotate_imm * 2
+                // simply skip this block when pipelining
+                address_reg_sel    <= de_addreg_sel; // don't do this when pipelining
+                update_address     <= DISABLE;       // don't do this when pipelining
+                reg_pc_write_en    <= DISABLE;       // don't do this when pipelining
+                // ------------------------------------------------------------------------
+            
+                // fetch instruction
+                fd_instruction     <= mem_data_prov_instruction;
+                
+                // disable mem write, and prevent to put data on MEM write bus
+                mem_write_en      <= DISABLE;
+                data_out_en       <= DISABLE;
+                
+                // prevent CPSR write and any other register write to happen (except R15)
+                reg_cpsr_write_en <= DISABLE;
+                reg_write_en      <= DISABLE;
+            end
+        
+        else if (pipeline_current_state == PIPELINE_DECODE)
+            begin
+                de_mem_write_en       <= w_de_mem_write_en;
+                //de_reg_read_A_sel     <= w_de_reg_read_A_sel;
+                //de_reg_read_B_sel     <= w_de_reg_read_B_sel;
+                // de_reg_read_B_en      <= w_de_reg_read_B_en;
+                //de_reg_write_sel      <= w_de_reg_write_sel;
+                // de_reg_write_en       <= w_de_reg_write_en;
+                de_reg_pc_write_en    <= ENABLE; // w_de_reg_pc_write_en; // hard-coded no branch
+                // de_reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
+                de_addreg_sel         <= ADDRESS_SELECT_INC; // w_de_addreg_sel; // hard-coded no branch
+                de_addreg_update      <= ENABLE; // w_de_addreg_update; // hard-coded no branch
+                //de_barrel_shift_val   <= w_de_barrel_shift_val;
+                //de_barrel_op_sel      <= w_de_barrel_op_sel;
+                //de_alu_op_sel         <= w_de_alu_op_sel;
+                de_data_out_en        <= w_de_data_out_en;
+                //de_immediate_value    <= w_de_immediate_value;
+                
+                reg_read_A_sel     <= w_de_reg_read_A_sel;
+                reg_read_B_sel     <= w_de_reg_read_B_sel;
+                reg_write_sel      <= w_de_reg_write_sel;
+                immediate_value    <= w_de_immediate_value;
+                data_prov_b_bus_en <= w_de_data_prov_b_bus_en;
+                barrel_shift_val   <= w_de_barrel_shift_val;
+                barrel_op_sel      <= w_de_barrel_op_sel;
+                alu_op_sel         <= w_de_alu_op_sel;
+                imm_output_en      <= w_de_imm_output_en;
+                reg_read_B_en      <= w_de_reg_read_B_en;
+                reg_write_en       <= w_de_reg_write_en;
+                reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
             end
             
-            // B bus tri-state
-            reg_read_B_en      <= de_reg_read_B_en;
-            imm_output_en      <= de_imm_output_en;
-            data_prov_b_bus_en <= de_data_prov_b_bus_en;
-            
-            // memory address register input select
-            //address_reg_sel    <= de_addreg_sel;
-        end
+        else if (pipeline_current_state == PIPELINE_EXECUTE)
+            begin
+                mem_write_en       <= de_mem_write_en;
+                //reg_read_A_sel     <= de_reg_read_A_sel;
+                //reg_read_B_sel     <= de_reg_read_B_sel;
+                //reg_write_sel      <= de_reg_write_sel;
+
+                address_reg_sel    <= de_addreg_sel;
+                update_address     <= de_addreg_update;
+                //barrel_shift_val   <= de_barrel_shift_val;
+                //barrel_op_sel      <= de_barrel_op_sel;
+                //alu_op_sel         <= de_alu_op_sel;
+                data_out_en        <= de_data_out_en;
+                //immediate_value    <= de_immediate_value;
+                
+                // data_prov_b_bus_en <= de_data_prov_b_bus_en;
+                // imm_output_en      <= de_imm_output_en;
+                // reg_read_B_en      <= w_de_reg_read_B_en;
+                
+                // simply skip this block when pipelining
+                reg_write_en       <= DISABLE; // don't do this when pipelining
+                reg_cpsr_write_en  <= DISABLE; // don't do this when pipelining
+                // ------------------------------------------------------------------------
+            end
     end
     
 endmodule

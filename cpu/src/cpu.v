@@ -30,6 +30,7 @@ module cpu(
     
     wire  [3:0] c_reg_read_A_sel;
     wire  [3:0] c_reg_read_B_sel;
+    wire  [3:0] c_reg_read_C_sel;
     wire        c_reg_read_B_en;
     wire  [3:0] c_reg_write_sel;
     wire        c_reg_write_en;
@@ -47,6 +48,8 @@ module cpu(
     
     wire        c_data_prov_b_bus_en;
     wire        c_data_out_en;
+    
+    wire [31:0] c_reg_shifter_value;
     /* end Control signals */
     
     
@@ -54,11 +57,12 @@ module cpu(
     /* DECODE AND LOGIC CONTROL MODULE INIT */
     logic_control logic_control_inst (.clk(clk),
                                       .reset(reset),
-                                      .b_bus_in(B_bus),
+                                      .reg_shifter_value(c_reg_shifter_value),
                                       .mem_data_prov_instruction(instruction_bus),
                                       .mem_write_en(c_mem_write_en),
                                       .reg_read_A_sel(c_reg_read_A_sel),
                                       .reg_read_B_sel(c_reg_read_B_sel),
+                                      .reg_read_C_sel(c_reg_read_C_sel),
                                       .reg_read_B_en(c_reg_read_B_en),
                                       .reg_write_sel(c_reg_write_sel),
                                       .reg_write_en(c_reg_write_en),
@@ -80,6 +84,7 @@ module cpu(
     reg_bank reg_bank_inst (.clk(clk),
                             .read_A_select(c_reg_read_A_sel),    // control
                             .read_B_select(c_reg_read_B_sel),    // control
+                            .read_C_select(c_reg_read_C_sel),
                             .read_B_en(c_reg_read_B_en),
                             .write_select(c_reg_write_sel),      // control
                             .write_en(c_reg_write_en),           // control
@@ -91,6 +96,7 @@ module cpu(
                             .reset(c_reset),                     // control
                             .read_A_data(A_bus),
                             .read_B_data(B_bus),
+                            .read_C_data(c_reg_shifter_value),
                             .read_pc_data(PC_bus),
                             .read_cpsr_data(reg_read_cpsr),
                             .debug_out_R14(LED));
@@ -98,6 +104,7 @@ module cpu(
     /* ADDRESS REGISTER MODULE INIT */
     wire [31:0] address_reg_inc_bridge;
     address_register address_register_inst (.clk(clk),
+                                            .reset(c_reset),
                                             .in0(ALU_bus),
                                             .in1(PC_bus),
                                             .in2(incrementer_bus),

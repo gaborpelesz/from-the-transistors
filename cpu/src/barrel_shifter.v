@@ -62,6 +62,7 @@ module barrel_shifter(
                                 out_carry = in_data[shift_value[4:0] - 1];
                          end
                 op_RRX : out_carry = in_data[0];
+                default: out_carry = in_carry; // should never happen
             endcase
         end 
     end
@@ -105,6 +106,7 @@ module barrel_shifter(
                 op_RRX : begin // decode phase should convert the shift_value for RRX to anything other than 8'b0, because 0 is handled differently by this module
                             out_shifted_data = {in_carry, in_data[31:1]}; // logical shift right with carry replacing vacated bit position
                          end
+                default: out_shifted_data = in_data; // should never happen
             endcase
         end
     end

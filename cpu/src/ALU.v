@@ -95,6 +95,8 @@ module ALU32(
             op_ADD,
                 op_CMN,
                 op_ADC : out_data = add32_out_data;
+                
+            default    : out_data = in_data1; // should never happen
         endcase
         
         /* ALU output flags */

@@ -11,7 +11,9 @@ module sub32(
     
     wire [32:0] result;
     
-    assign result       = in_data0 - in_data1 - ~in_carry;
+    wire negated_carry    = ~in_carry; // if we do not negate the carry in a separate wire
+                                       // the negation will be incorrect because of some Vivado magic
+    assign result       = in_data0 - in_data1 - negated_carry;
     assign out_data     = result[31:0];
 
     assign out_carry    = ~ (~in_data0[31] & out_data[31]);  // borrow in the carry flag can only occur if the minuhend's

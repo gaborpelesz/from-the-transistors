@@ -42,9 +42,9 @@ module ALU32(
     add32 add32_inst (in_data0, in_data1, add32_in_carry, add32_out_data, add32_out_carry, add32_out_overflow);
     
     /* SUBTRACT MODULE */
-    reg  [31:0] sub32_in_data0 = 0;
-    reg  [31:0] sub32_in_data1 = 0;
-    reg         sub32_in_carry = 1;
+    reg  [31:0] sub32_in_data0;
+    reg  [31:0] sub32_in_data1;
+    reg         sub32_in_carry;
     wire [31:0] sub32_out_data;
     wire        sub32_out_carry;
     wire        sub32_out_overflow;

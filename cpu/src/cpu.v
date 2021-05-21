@@ -97,7 +97,8 @@ module cpu(
     
     /* ADDRESS REGISTER MODULE INIT */
     wire [31:0] address_reg_inc_bridge;
-    address_register address_register_inst (.in0(ALU_bus),
+    address_register address_register_inst (.clk(clk),
+                                            .in0(ALU_bus),
                                             .in1(PC_bus),
                                             .in2(incrementer_bus),
                                             .in_select(c_address_reg_sel),                 // control

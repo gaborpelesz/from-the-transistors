@@ -5,6 +5,7 @@ module reg_bank(
     input  wire        clk,
            wire  [3:0] read_A_select,
            wire  [3:0] read_B_select,
+           wire  [3:0] read_C_select,
            wire        read_B_en,     // output to the B bus should be tri-state
            wire  [3:0] write_select,
            wire        write_en,
@@ -16,6 +17,7 @@ module reg_bank(
            wire        reset,
     output wire [31:0] read_A_data,
            wire [31:0] read_B_data,
+           wire [31:0] read_C_data,
            wire [31:0] read_pc_data,
            wire  [3:0] read_cpsr_data,
            wire [15:0] debug_out_R14
@@ -50,7 +52,7 @@ module reg_bank(
                 BANK[PC_SELECT] <= write_pc_data;
             
             /* Normal register write */
-            else if (write_en)
+            if (write_en)
                 BANK[write_select] <= write_data;
         end
     end
@@ -58,6 +60,7 @@ module reg_bank(
     /* read lines */
     assign read_A_data    = BANK[read_A_select];
     assign read_B_data    = read_B_en ? BANK[read_B_select] : 32'bz;
+    assign read_C_data    = BANK[read_C_select];
     assign read_pc_data   = BANK[PC_SELECT];
     assign read_cpsr_data = cpsr;
     

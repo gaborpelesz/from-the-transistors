@@ -7,12 +7,6 @@ module write_data_register(
     output reg [31:0] data_out
     );
     
-    always @ (*)
-    begin
-        if (data_out_en)
-            data_out = B_bus;
-        else
-            data_out = 32'bz;
-    end
+    always @ (*) data_out = data_out_en ? B_bus : 32'bz;
     
 endmodule

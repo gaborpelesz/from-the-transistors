@@ -7,7 +7,7 @@ module mem_data_provider(
            wire [31:0] data_out1
     );
     
-    always @ (in_b_bus_en, data_in)
+    always @ (*)
         data_out0 = in_b_bus_en == 0 ? 32'bz : data_in;
     
     assign data_out1 = data_in;

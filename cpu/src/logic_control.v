@@ -80,7 +80,8 @@ module logic_control(
                PIPELINE_EXECUTE = 3'b100,
                PIPELINE_STALL   = 3'b101;
     
-    reg [2:0] pipeline_next_state = PIPELINE_RESET_1;
+    reg [2:0] pipeline_current_state = PIPELINE_STALL;
+    reg [2:0] pipeline_next_state    = PIPELINE_RESET_1;
     
     // fetch-decode pipeline registers
     reg [31:0] fd_instruction = 32'b11100001101000000000000000000000; // initialize to NOP (MOV R0, R0)
@@ -110,8 +111,7 @@ module logic_control(
     /* Immediate data provider module init */
     reg         imm_output_en   = DISABLE;
     reg  [31:0] immediate_value = 32'hFFFF_FFFF;
-    imm_data_provider imm_data_provider_inst (.clk(clk),
-                                              .in_immediate(immediate_value),
+    imm_data_provider imm_data_provider_inst (.in_immediate(immediate_value),
                                               .in_output_en(imm_output_en),
                                               .out_b_bus(out_immediate_value));
     

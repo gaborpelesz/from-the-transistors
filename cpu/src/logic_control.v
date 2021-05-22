@@ -259,21 +259,18 @@ module logic_control(
         
         else if (pipeline_current_state == PIPELINE_DECODE)
             begin
-                de_mem_write_en       <= w_de_mem_write_en;
-                //de_reg_read_A_sel     <= w_de_reg_read_A_sel;
-                //de_reg_read_B_sel     <= w_de_reg_read_B_sel;
-                // de_reg_read_B_en      <= w_de_reg_read_B_en;
-                //de_reg_write_sel      <= w_de_reg_write_sel;
-                // de_reg_write_en       <= w_de_reg_write_en;
-                de_reg_pc_write_en    <= ENABLE; // w_de_reg_pc_write_en; // hard-coded no branch
-                // de_reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
-                de_addreg_sel         <= ADDRESS_SELECT_INC; // w_de_addreg_sel; // hard-coded no branch
-                de_addreg_update      <= ENABLE; // w_de_addreg_update; // hard-coded no branch
-                //de_barrel_shift_val   <= w_de_barrel_shift_val;
-                //de_barrel_op_sel      <= w_de_barrel_op_sel;
-                //de_alu_op_sel         <= w_de_alu_op_sel;
-                de_data_out_en        <= w_de_data_out_en;
-                //de_immediate_value    <= w_de_immediate_value;
+                de_mem_write_en    <= w_de_mem_write_en;
+                de_data_out_en     <= w_de_data_out_en;
+                
+                // de_reg_pc_write_en <= w_de_reg_pc_write_en; // hard-coded no branch
+                // de_addreg_sel      <= w_de_addreg_sel; // hard-coded no branch
+                // de_addreg_update   <= w_de_addreg_update; // hard-coded no branch
+                if (w_de_addreg_sel == ADDRESS_SELECT_ALU)
+                begin
+                    address_reg_sel <= ADDRESS_SELECT_ALU;
+                    update_address  <= ENABLE;
+                    reg_pc_write_en <= ENABLE;
+                end
                 
                 reg_read_A_sel     <= w_de_reg_read_A_sel;
                 reg_read_B_sel     <= w_de_reg_read_B_sel;
@@ -287,26 +284,18 @@ module logic_control(
                 reg_read_B_en      <= w_de_reg_read_B_en;
                 reg_write_en       <= w_de_reg_write_en;
                 reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
+                
             end
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)
             begin
-                mem_write_en       <= de_mem_write_en;
-                //reg_read_A_sel     <= de_reg_read_A_sel;
-                //reg_read_B_sel     <= de_reg_read_B_sel;
-                //reg_write_sel      <= de_reg_write_sel;
+                mem_write_en    <= de_mem_write_en;
 
-                address_reg_sel    <= de_addreg_sel;
-                update_address     <= de_addreg_update;
-                //barrel_shift_val   <= de_barrel_shift_val;
-                //barrel_op_sel      <= de_barrel_op_sel;
-                //alu_op_sel         <= de_alu_op_sel;
-                data_out_en        <= de_data_out_en;
-                //immediate_value    <= de_immediate_value;
+                address_reg_sel <= ADDRESS_SELECT_INC;
+                update_address  <= ENABLE;
+                reg_pc_write_en <= ENABLE;
                 
-                // data_prov_b_bus_en <= de_data_prov_b_bus_en;
-                // imm_output_en      <= de_imm_output_en;
-                // reg_read_B_en      <= w_de_reg_read_B_en;
+                data_out_en     <= w_de_data_out_en;
                 
                 // simply skip this block when pipelining
                 reg_write_en       <= DISABLE; // don't do this when pipelining

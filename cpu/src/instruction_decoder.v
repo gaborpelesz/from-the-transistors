@@ -82,18 +82,18 @@ module instruction_decoder(
                 de_imm_output_en      = DISABLE;
                 
                 de_reg_write_en       = ENABLE;            
-                de_reg_pc_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = fd_instruction[20];
                 
                 de_data_out_en        = DISABLE;
                 de_mem_write_en       = DISABLE;
                 
-                de_addreg_update      = DISABLE;
-                de_addreg_sel         = ADDRESS_SELECT_INC; // change this if branching or jump
+                de_reg_pc_write_en    = ENABLE;
+                de_addreg_update      = ENABLE;
+                de_addreg_sel         = ADDRESS_SELECT_INC;
             
                 de_reg_read_A_sel = fd_instruction[19:16]; // Rn
                 de_reg_read_B_sel = fd_instruction[3:0];   // Rm
-                reg_read_C_sel = R0;                       // Rs
+                reg_read_C_sel    = R0;                    // Rs
                 de_reg_write_sel  = fd_instruction[15:12]; // Rd
                 
                 de_barrel_op_sel  = fd_instruction[11:7] == 0 ? BARREL_OP_RRX : {1'b0, fd_instruction[6:5]};
@@ -110,14 +110,14 @@ module instruction_decoder(
                 de_imm_output_en      = DISABLE;
                 
                 de_reg_write_en       = ENABLE;            
-                de_reg_pc_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = fd_instruction[20];
                 
                 de_data_out_en        = DISABLE;
                 de_mem_write_en       = DISABLE;
                 
-                de_addreg_update      = DISABLE;
-                de_addreg_sel         = ADDRESS_SELECT_INC; // change this if branching or jump
+                de_reg_pc_write_en    = ENABLE;
+                de_addreg_update      = ENABLE;
+                de_addreg_sel         = ADDRESS_SELECT_INC;
 
                 de_reg_read_A_sel = fd_instruction[19:16]; // Rn
                 de_reg_read_B_sel = fd_instruction[3:0];   // Rm
@@ -139,14 +139,14 @@ module instruction_decoder(
                 de_imm_output_en      = ENABLE;
                 
                 de_reg_write_en       = ENABLE;            
-                de_reg_pc_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = fd_instruction[20];
                 
                 de_data_out_en        = DISABLE;
                 de_mem_write_en       = DISABLE;
                 
-                de_addreg_update      = DISABLE;
-                de_addreg_sel         = ADDRESS_SELECT_INC; // change this if branching or jump    
+                de_reg_pc_write_en    = ENABLE;
+                de_addreg_update      = ENABLE;
+                de_addreg_sel         = ADDRESS_SELECT_INC;    
             
                 de_reg_read_A_sel = fd_instruction[19:16]; // Rn
                 de_reg_read_B_sel = R0;                    // Rm
@@ -158,6 +158,49 @@ module instruction_decoder(
                 
                 de_barrel_shift_val = {27'b0, fd_instruction[11:8], 1'b0}; // shift_val = rotate_imm * 2
                 de_immediate_value  = {24'b0, fd_instruction[7:0]};      
+            end
+            
+        else if (decoded_instruction_type == DECODE_BRANCH_AND_BL_1 || decoded_instruction_type == DECODE_BRANCH_AND_BL_2)
+            begin
+                // Basically the following operation: ADD PC, PC, (SignExtend_30(signed_immed_24) << 2)
+                //  if L == 1 then, LR = address of the instruction after the branch instruction, where LR == R14
+                //  Thus L is to perform a subroutine call. Do a MOV PC, R14 in the end of the subroutine to return.
+                
+                // fd_instruction[24]; // L
+                
+                // B bus tri-state
+                de_reg_read_B_en      = DISABLE;
+                de_data_prov_b_bus_en = DISABLE;
+                de_imm_output_en      = ENABLE;
+                
+                de_reg_write_en       = ENABLE;            
+                de_reg_cpsr_write_en  = fd_instruction[20];
+                
+                de_data_out_en        = DISABLE;
+                de_mem_write_en       = DISABLE;
+                
+                de_reg_pc_write_en    = ENABLE;
+                de_addreg_update      = ENABLE;
+                de_addreg_sel         = ADDRESS_SELECT_ALU; // next fetch will be the computed value from the ALU    
+            
+                de_reg_read_A_sel = R15; // one of the operands is the PC
+                de_reg_read_B_sel = R0;  // NONE - Rm
+                reg_read_C_sel    = R0;  // NONE - Rs
+                de_reg_write_sel  = R15; // destination is the PC as well
+                
+                de_barrel_op_sel  = BARREL_OP_LSL;
+                de_alu_op_sel     = ALU_OP_ADD; // PC + immediate
+                
+                de_barrel_shift_val = 32'b0;
+                
+                // if execution is pipelining
+                    //de_immediate_value  = ($signed({fd_instruction[23:0], 6'b0}) >>> 6) << 2; // (SignExtend_30(signed_immed_24) << 2)
+                // if not pipelining
+                    de_immediate_value  = (($signed({fd_instruction[23:0], 6'b0}) >>> 6) << 2) | $signed(32'd4); // (SignExtend_30(signed_immed_24) << 2)
+                                                                                                                 // OR with 32'd4 because the current PC is
+                                                                                                                 // pointing to the next instruction which is
+                                                                                                                 // 4 bytes ahead. Thus subtracting an extra 4 is
+                                                                                                                 // necessary.
             end
     end
     

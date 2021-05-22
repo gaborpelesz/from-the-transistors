@@ -88,7 +88,7 @@ module barrel_shifter(
                          end
                 op_ASR : begin
                             if (shift_value < 32)
-                                out_shifted_data = in_data >>> shift_value;
+                                out_shifted_data = $signed(in_data) >>> shift_value;
                             else
                                 if (in_data == 0)
                                     out_shifted_data = 0;

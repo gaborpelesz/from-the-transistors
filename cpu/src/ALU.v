@@ -53,36 +53,34 @@ module ALU32(
     always @ (*)
     begin
         /* ALU operation set input */
-        if (in_op_select == op_SUB || in_op_select == op_CMP || in_op_select == op_SBC) begin
-            if (in_op_select == op_SBC)
-                sub32_in_carry = in_carry;
-            else
-                sub32_in_carry = 1;
-            
+        if (in_op_select == op_SBC || in_op_select == op_RSC)
+            sub32_in_carry = in_carry;
+        else
+            sub32_in_carry = 1;
+        
+        if (in_op_select == op_RSB || in_op_select == op_RSC)
+        begin
             sub32_in_data0 = in_data0;
             sub32_in_data1 = in_data1;
-            
-        end else if (in_op_select == op_RSB || in_op_select == op_RSC) begin
-            if (in_op_select == op_RSC)
-                sub32_in_carry = in_carry;
-            else
-                sub32_in_carry = 1;
-                
+        end
+        else
+        begin
             sub32_in_data0 = in_data1;
             sub32_in_data1 = in_data0;
+        end
             
-        end else if (in_op_select == op_ADD || in_op_select == op_CMN) begin
-            add32_in_carry = 0;
-            
-        end else if (in_op_select == op_ADC) begin
+        if (in_op_select == op_ADC)
             add32_in_carry = in_carry;
-        end // end ALU set input
+        else
+            add32_in_carry = 0;
+        
     
         /* ALU output data */
         case (in_op_select)
             op_AND,
                 op_TST : out_data =  in_data0  &  in_data1;
-            op_EOR     : out_data =  in_data0  ^  in_data1;
+            op_EOR,
+                op_TEQ : out_data =  in_data0  ^  in_data1;
             op_ORR     : out_data =  in_data0  |  in_data1;
             op_BIC     : out_data =  in_data0  & ~in_data1;
             op_MOV     : out_data =  in_data1;
@@ -95,8 +93,6 @@ module ALU32(
             op_ADD,
                 op_CMN,
                 op_ADC : out_data = add32_out_data;
-                
-            default    : out_data = in_data1; // should never happen
         endcase
         
         /* ALU output flags */

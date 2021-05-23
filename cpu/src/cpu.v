@@ -10,11 +10,6 @@ module cpu(
     output wire [15:0] LED
     );
     
-    //wire clk = BTNR;
-    //wire clk = mclk;
-    
-    //assign LED = 16'b0;
-    
     /* BUSES */
     wire [31:0] data_in_bus, data_out_bus; // memory in-out
     wire [31:0] address_bus;               // memory addressing
@@ -41,7 +36,7 @@ module cpu(
     wire  [1:0] c_address_reg_sel;
     wire        c_update_address;
     
-    wire  [31:0] c_barrel_shift_val;
+    wire [31:0] c_barrel_shift_val;
     wire  [2:0] c_barrel_op_sel;
     
     wire  [3:0] c_alu_op_sel;
@@ -50,6 +45,9 @@ module cpu(
     wire        c_data_out_en;
     
     wire [31:0] c_reg_shifter_value;
+    
+    wire  [3:0] reg_write_cpsr;
+    wire  [3:0] reg_read_cpsr;
     /* end Control signals */
     
     
@@ -59,6 +57,7 @@ module cpu(
                                       .reset(reset),
                                       .reg_shifter_value(c_reg_shifter_value),
                                       .mem_data_prov_instruction(instruction_bus),
+                                      .in_cpsr(reg_read_cpsr),
                                       .mem_write_en(c_mem_write_en),
                                       .reg_read_A_sel(c_reg_read_A_sel),
                                       .reg_read_B_sel(c_reg_read_B_sel),
@@ -79,8 +78,6 @@ module cpu(
                                       .out_immediate_value(B_bus));
     
     /* REGISTER BANK MODULE INIT */
-    wire  [3:0] reg_write_cpsr;
-    wire  [3:0] reg_read_cpsr;
     reg_bank reg_bank_inst (.clk(clk),
                             .read_A_select(c_reg_read_A_sel),    // control
                             .read_B_select(c_reg_read_B_sel),    // control
@@ -99,7 +96,7 @@ module cpu(
                             .read_C_data(c_reg_shifter_value),
                             .read_pc_data(PC_bus),
                             .read_cpsr_data(reg_read_cpsr),
-                            .debug_out_R14(LED));
+                            .debug_out(LED));
     
     /* ADDRESS REGISTER MODULE INIT */
     wire [31:0] address_reg_inc_bridge;

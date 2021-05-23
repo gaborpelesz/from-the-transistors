@@ -6,6 +6,7 @@ module logic_control(
            wire        reset,
            wire [31:0] reg_shifter_value,
            wire [31:0] mem_data_prov_instruction,
+           wire  [3:0] in_cpsr,
     output reg         mem_write_en,
            reg   [3:0] reg_read_A_sel,
            reg   [3:0] reg_read_B_sel,
@@ -105,23 +106,6 @@ module logic_control(
     wire         w_de_mem_write_en;
     wire         w_de_addreg_update;
     wire   [1:0] w_de_addreg_sel;
-    reg        de_mem_write_en       = DISABLE;
-    reg  [3:0] de_reg_read_A_sel     = R0;
-    reg  [3:0] de_reg_read_B_sel     = R0;
-    reg        de_reg_read_B_en      = ENABLE;
-    reg  [3:0] de_reg_write_sel      = R0;
-    reg        de_reg_write_en       = DISABLE;
-    reg        de_reg_pc_write_en    = DISABLE;
-    reg        de_reg_cpsr_write_en  = DISABLE;
-    reg  [1:0] de_addreg_sel         = ADDRESS_SELECT_PC;
-    reg        de_addreg_update      = DISABLE;
-    reg [31:0] de_barrel_shift_val   = 32'b0;
-    reg  [2:0] de_barrel_op_sel      = BARREL_OP_LSL;
-    reg  [3:0] de_alu_op_sel         = ALU_OP_MOV;
-    reg        de_data_prov_b_bus_en = DISABLE;
-    reg        de_data_out_en        = DISABLE;
-    reg [31:0] de_immediate_value    = 32'b0;
-    reg        de_imm_output_en      = DISABLE;
 
     /* Immediate data provider module init */
     reg         imm_output_en   = DISABLE;
@@ -133,6 +117,7 @@ module logic_control(
     /* INSTRUCTION DECODER MODULE */
     instruction_decoder instruction_decoder_inst (fd_instruction,
                                                   reg_shifter_value,
+                                                  in_cpsr,
                                                   w_de_reg_read_A_sel,
                                                   w_de_reg_read_B_sel,
                                                   reg_read_C_sel,
@@ -208,23 +193,6 @@ module logic_control(
                 
                 // reset every pipeline register
                 fd_instruction = 32'b11100001101000000000000000000000; // init NOP
-                de_mem_write_en       <= DISABLE;
-                de_reg_read_A_sel     <= R0;
-                de_reg_read_B_sel     <= R0;
-                de_reg_read_B_en      <= ENABLE;
-                de_reg_write_sel      <= R0;
-                de_reg_write_en       <= DISABLE;
-                de_reg_pc_write_en    <= DISABLE;
-                de_reg_cpsr_write_en  <= DISABLE;
-                de_addreg_sel         <= ADDRESS_SELECT_PC;
-                de_addreg_update      <= DISABLE;
-                de_barrel_shift_val   <= 32'b0;
-                de_barrel_op_sel      <= BARREL_OP_LSL;
-                de_alu_op_sel         <= ALU_OP_MOV;
-                de_data_prov_b_bus_en <= DISABLE;
-                de_data_out_en        <= DISABLE;
-                de_immediate_value    <= 32'b0;
-                de_imm_output_en      <= DISABLE;
             end
 
         else if (pipeline_current_state == PIPELINE_RESET_2)
@@ -240,7 +208,7 @@ module logic_control(
         else if (pipeline_current_state == PIPELINE_FETCH)
             begin
                 // simply skip this block when pipelining
-                address_reg_sel    <= de_addreg_sel; // don't do this when pipelining
+                //address_reg_sel    <= de_addreg_sel; // don't do this when pipelining
                 update_address     <= DISABLE;       // don't do this when pipelining
                 reg_pc_write_en    <= DISABLE;       // don't do this when pipelining
                 // ------------------------------------------------------------------------
@@ -259,8 +227,8 @@ module logic_control(
         
         else if (pipeline_current_state == PIPELINE_DECODE)
             begin
-                de_mem_write_en    <= w_de_mem_write_en;
-                de_data_out_en     <= w_de_data_out_en;
+                mem_write_en    <= w_de_mem_write_en;
+                data_out_en     <= w_de_data_out_en;
                 
                 // de_reg_pc_write_en <= w_de_reg_pc_write_en; // hard-coded no branch
                 // de_addreg_sel      <= w_de_addreg_sel; // hard-coded no branch
@@ -289,17 +257,15 @@ module logic_control(
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)
             begin
-                mem_write_en    <= de_mem_write_en;
-
                 address_reg_sel <= ADDRESS_SELECT_INC;
                 update_address  <= ENABLE;
                 reg_pc_write_en <= ENABLE;
                 
-                data_out_en     <= w_de_data_out_en;
-                
                 // simply skip this block when pipelining
-                reg_write_en       <= DISABLE; // don't do this when pipelining
-                reg_cpsr_write_en  <= DISABLE; // don't do this when pipelining
+                reg_write_en      <= DISABLE; // don't do this when pipelining
+                reg_cpsr_write_en <= DISABLE; // don't do this when pipelining
+                mem_write_en      <= DISABLE;
+                data_out_en       <= DISABLE;
                 // ------------------------------------------------------------------------
             end
     end

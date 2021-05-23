@@ -15,6 +15,7 @@ module logic_control(
            reg   [3:0] reg_write_sel,
            reg         reg_write_en,
            reg         reg_pc_write_en,
+           reg         reg_lr_write_en,
            reg         reg_cpsr_write_en,
            reg   [1:0] address_reg_sel,
            reg         update_address,
@@ -101,6 +102,7 @@ module logic_control(
     wire         w_de_imm_output_en;
     wire         w_de_reg_write_en;
     wire         w_de_reg_pc_write_en;
+    wire         w_de_reg_lr_write_en;
     wire         w_de_reg_cpsr_write_en;
     wire         w_de_data_out_en;
     wire         w_de_mem_write_en;
@@ -131,6 +133,7 @@ module logic_control(
                                                   w_de_imm_output_en,
                                                   w_de_reg_write_en,
                                                   w_de_reg_pc_write_en,
+                                                  w_de_reg_lr_write_en,
                                                   w_de_reg_cpsr_write_en,
                                                   w_de_data_out_en,
                                                   w_de_mem_write_en,
@@ -180,6 +183,7 @@ module logic_control(
                 reg_write_sel       <= R0;
                 reg_write_en        <= DISABLE;
                 reg_pc_write_en     <= ENABLE;
+                reg_lr_write_en     <= DISABLE;
                 reg_cpsr_write_en   <= DISABLE;
                 address_reg_sel     <= ADDRESS_SELECT_PC;
                 update_address      <= ENABLE;
@@ -211,6 +215,7 @@ module logic_control(
                 //address_reg_sel    <= de_addreg_sel; // don't do this when pipelining
                 update_address     <= DISABLE;       // don't do this when pipelining
                 reg_pc_write_en    <= DISABLE;       // don't do this when pipelining
+                reg_lr_write_en    <= DISABLE;
                 // ------------------------------------------------------------------------
             
                 // fetch instruction
@@ -251,8 +256,8 @@ module logic_control(
                 imm_output_en      <= w_de_imm_output_en;
                 reg_read_B_en      <= w_de_reg_read_B_en;
                 reg_write_en       <= w_de_reg_write_en;
+                reg_lr_write_en    <= w_de_reg_lr_write_en;
                 reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
-                
             end
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)
@@ -266,6 +271,7 @@ module logic_control(
                 reg_cpsr_write_en <= DISABLE; // don't do this when pipelining
                 mem_write_en      <= DISABLE;
                 data_out_en       <= DISABLE;
+                reg_lr_write_en   <= DISABLE;
                 // ------------------------------------------------------------------------
             end
     end

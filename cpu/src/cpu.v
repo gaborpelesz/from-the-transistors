@@ -31,6 +31,7 @@ module cpu(
     wire        c_reg_write_en;
     wire        c_reg_pc_write_en;
     wire        c_reg_cpsr_write_en;
+    wire        c_reg_write_lr_en;
     wire        c_reset;
     
     wire  [1:0] c_address_reg_sel;
@@ -66,6 +67,7 @@ module cpu(
                                       .reg_write_sel(c_reg_write_sel),
                                       .reg_write_en(c_reg_write_en),
                                       .reg_pc_write_en(c_reg_pc_write_en),
+                                      .reg_lr_write_en(c_reg_write_lr_en),
                                       .reg_cpsr_write_en(c_reg_cpsr_write_en),
                                       .address_reg_sel(c_address_reg_sel),
                                       .update_address(c_update_address),
@@ -88,6 +90,7 @@ module cpu(
                             .write_data(ALU_bus),
                             .write_pc_en(c_reg_pc_write_en),     // control
                             .write_pc_data(incrementer_bus),
+                            .write_lr_en(c_reg_write_lr_en),
                             .write_cpsr_data(reg_write_cpsr),
                             .write_cpsr_en(c_reg_cpsr_write_en), // control
                             .reset(c_reset),                     // control
@@ -137,7 +140,7 @@ module cpu(
                       .out_overflow(reg_write_cpsr[0])); // control (CPSR update if S enabled)
     
     /* MEMORY (BRAM) INIT */
-    memory #(.NUM_OF_BYTES(800)) ram_inst (.clk(clk),
+    memory #(.NUM_OF_BYTES(1024)) ram_inst (.clk(clk),
                                            .address(address_bus),
                                            .write_en(c_mem_write_en),
                                            .write_data(B_bus),

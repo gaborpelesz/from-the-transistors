@@ -17,6 +17,7 @@ module instruction_decoder(
            reg         de_imm_output_en,
            reg         de_reg_write_en,
            reg         de_reg_pc_write_en,
+           reg         de_reg_lr_write_en,
            reg         de_reg_cpsr_write_en,
            reg         de_data_out_en,
            reg         de_mem_write_en,
@@ -115,6 +116,7 @@ module instruction_decoder(
                 else
                     de_reg_write_en = ENABLE;
                 
+                de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
                 de_reg_pc_write_en = ENABLE;
@@ -148,6 +150,7 @@ module instruction_decoder(
                 else
                     de_reg_write_en = ENABLE;
                     
+                de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
                 de_reg_pc_write_en = ENABLE;
@@ -181,7 +184,8 @@ module instruction_decoder(
                     de_reg_write_en = DISABLE;
                 else
                     de_reg_write_en = ENABLE;
-                    
+                
+                de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
                 de_reg_pc_write_en = ENABLE;
@@ -202,7 +206,8 @@ module instruction_decoder(
                 de_data_prov_b_bus_en = DISABLE;
                 de_imm_output_en      = ENABLE;
                 
-                de_reg_write_en       = ENABLE;            
+                de_reg_write_en       = ENABLE;
+                de_reg_lr_write_en    = current_instruction[24]; // L bit in BL
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
                 de_data_out_en        = DISABLE;
@@ -254,6 +259,7 @@ module instruction_decoder(
                 de_reg_cpsr_write_en = 0;
                 
                 de_reg_pc_write_en = DISABLE;
+                de_reg_lr_write_en = DISABLE;
                 de_addreg_update   = DISABLE;
                 de_addreg_sel      = ADDRESS_SELECT_INC;
             end

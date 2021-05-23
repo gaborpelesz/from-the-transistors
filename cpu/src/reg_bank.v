@@ -12,6 +12,7 @@ module reg_bank(
            wire [31:0] write_data,
            wire        write_pc_en,
            wire [31:0] write_pc_data,
+           wire        write_lr_en,
            wire  [3:0] write_cpsr_data,
            wire        write_cpsr_en,
            wire        reset,
@@ -28,7 +29,6 @@ module reg_bank(
                R8  = 4'd08, R9  = 4'd09, R10 = 4'd10, R11 = 4'd11,
                R12 = 4'd12, R13 = 4'd13, R14 = 4'd14, R15 = 4'd15,
                LR  = 4'd14, PC  = 4'd15;
-    localparam PC_SELECT = 4'd15;
     
     reg [31:0] BANK [0:15];    // 16 x 32bit registers R0-R15, where R15 is the PC
     reg  [3:0] cpsr = 4'b0000; // reduced Current Program Status Register, leaving only the N,Z,C,V bits
@@ -55,10 +55,16 @@ module reg_bank(
             // only write PC if we currently don't modify it from the ALU
             if (write_pc_en && !(write_select == PC && write_en))
                 BANK[PC] <= write_pc_data;
+
             
             /* Normal register write */
             if (write_en)
+            begin
+                if (write_lr_en && write_select == PC) // in case of BL we write the next instruction's address into LR (R14)
+                    BANK[LR] <= BANK[PC]; // when not pipelining the current value of the PC holds the next instructions address
+                    
                 BANK[write_select] <= write_data;
+            end
         end
     end
     

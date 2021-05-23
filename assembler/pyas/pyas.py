@@ -47,7 +47,7 @@ def main(args):
     print([hex(b) for b in binary])
     
     for i, b in enumerate(binary):
-        print(f"0x{i:0>4x}: {b:b}")
+        print(f"0x{i:0>4x}: {b:0>32b}") # watch out for the 0>32b pattern when saving the bits as well
 
 if __name__ == "__main__":
     main(sys.argv)

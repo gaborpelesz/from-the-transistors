@@ -1,5 +1,5 @@
 # from-the-transistors
 Project inspired by George Hotz
 
-Where I am?
+Where am I?
 - Section 3: Building the CPU

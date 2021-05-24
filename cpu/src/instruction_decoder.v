@@ -81,6 +81,8 @@ module instruction_decoder(
     reg [31:0] current_instruction;
     reg  [3:0] decoded_instruction_type;
     
+    reg P, U, B, W, L; // load-store variables
+    
     always @ (*)
     begin
         // check if condition is met decode instruction else replace it with NOP
@@ -234,6 +236,122 @@ module instruction_decoder(
                 de_addreg_sel      = ADDRESS_SELECT_ALU; // next fetch will be the computed value from the ALU
             end
             
+        else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2)
+            begin
+                P = current_instruction[24];
+                U = current_instruction[23];
+                B = current_instruction[22];
+                W = current_instruction[21];
+                L = current_instruction[20];
+            
+                if (L == 0) // STORE (ARM ARM pdf p343)
+                begin
+                    if (P == 1)
+                    begin
+                        if (W == 0) // offset addressing (P == 1 && W == 0)
+                        begin
+                            // B bus tri-state
+                            de_reg_read_B_en      = DISABLE;
+                            de_data_prov_b_bus_en = DISABLE;
+                            de_imm_output_en      = ENABLE;
+                            
+                            de_reg_write_en       = DISABLE;
+                            de_reg_lr_write_en    = DISABLE;
+                            de_reg_cpsr_write_en  = DISABLE;
+                            
+                            de_data_out_en        = DISABLE;
+                            de_mem_write_en       = DISABLE;
+                        
+                            de_reg_read_A_sel = current_instruction[19:16];
+                            de_reg_read_B_sel = R0; 
+                            reg_read_C_sel    = R0;
+                            de_reg_write_sel  = current_instruction[15:12]; 
+                            
+                            de_barrel_op_sel  = BARREL_OP_LSL;
+                            de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
+                            
+                            de_barrel_shift_val = 32'b0;
+                            
+                            de_immediate_value  = current_instruction[11:0]; 
+                            
+                            de_reg_pc_write_en = ENABLE;
+                            de_addreg_update   = ENABLE;
+                            de_addreg_sel      = ADDRESS_SELECT_INC;
+                        end
+                        else        // pre-indexed addressing (P == 1 && W == 1)
+                        begin
+                        end
+                    end
+                    else            // post-indexed addressing (P == 0)
+                    begin           // unpriviliged memory access is not implemented (W bit doesn't matter)
+                        
+                    end
+                end
+                else // L == 1 -> LOAD (ARM ARM pdf p193)
+                begin
+                    
+                end
+            
+                // B bus tri-state
+                de_reg_read_B_en      = DISABLE;
+                de_data_prov_b_bus_en = DISABLE;
+                de_imm_output_en      = DISABLE;
+                
+                de_reg_write_en       = DISABLE;
+                de_reg_lr_write_en    = DISABLE;
+                de_reg_cpsr_write_en  = DISABLE;
+                
+                de_data_out_en        = DISABLE;
+                de_mem_write_en       = DISABLE;
+            
+                de_reg_read_A_sel = R0;
+                de_reg_read_B_sel = R0; 
+                reg_read_C_sel    = R0;
+                de_reg_write_sel  = R0; 
+                
+                de_barrel_op_sel  = BARREL_OP_LSL;
+                de_alu_op_sel     = ALU_OP_ADD;
+                
+                de_barrel_shift_val = 32'b0;
+                
+                de_immediate_value  = 32'b0; 
+                
+                de_reg_pc_write_en = ENABLE;
+                de_addreg_update   = ENABLE;
+                de_addreg_sel      = ADDRESS_SELECT_INC;
+            end
+            
+        else if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
+            begin
+                // B bus tri-state
+                de_reg_read_B_en      = DISABLE;
+                de_data_prov_b_bus_en = DISABLE;
+                de_imm_output_en      = DISABLE;
+                
+                de_reg_write_en       = DISABLE;
+                de_reg_lr_write_en    = DISABLE;
+                de_reg_cpsr_write_en  = DISABLE;
+                
+                de_data_out_en        = DISABLE;
+                de_mem_write_en       = DISABLE;
+            
+                de_reg_read_A_sel = R0;
+                de_reg_read_B_sel = R0; 
+                reg_read_C_sel    = R0;
+                de_reg_write_sel  = R0; 
+                
+                de_barrel_op_sel  = BARREL_OP_LSL;
+                de_alu_op_sel     = ALU_OP_ADD;
+                
+                de_barrel_shift_val = 32'b0;
+                
+                de_immediate_value  = 32'b0; 
+                
+                de_reg_pc_write_en = ENABLE;
+                de_addreg_update   = ENABLE;
+                de_addreg_sel      = ADDRESS_SELECT_INC;
+            end
+            
         else // default to not infer latch, should never happen
             begin
                 // B bus tri-state
@@ -245,8 +363,8 @@ module instruction_decoder(
                 de_mem_write_en       = DISABLE;
             
                 de_reg_read_A_sel = R0; // Rn
-                de_reg_read_B_sel = R0;   // Rm
-                reg_read_C_sel    = R0;                    // Rs
+                de_reg_read_B_sel = R0; // Rm
+                reg_read_C_sel    = R0; // Rs
                 de_reg_write_sel  = R0; // Rd
                 
                 de_barrel_op_sel  = BARREL_OP_LSL;
@@ -267,4 +385,3 @@ module instruction_decoder(
     
     
 endmodule
-

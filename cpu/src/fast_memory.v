@@ -1,23 +1,28 @@
 `timescale 1ns / 1ps
 
-/* Size adjustable RAM, with big-endian endianess */
-module memory #(parameter NUM_OF_BYTES = 1024)(
+/* Size adjustable fast RAM, with big-endian endianess 
+    - it reads out 4 bytes at once (1 cycle for 32bit data)
+    - read lines can always be read
+    - perfect for small ROM and/or MMIO (~1KB)
+    - but it will NOT infer BRAM!
+*/
+module fast_memory #(parameter NUM_OF_BYTES = 1024)(
     input  wire        clk,
+           wire        mem_reset,
            wire [31:0] address,
            wire        write_en,
            wire [31:0] write_data,
-           wire        reset,
     output reg  [31:0] read_data
     );
     
-    reg [7:0] mem [0:NUM_OF_BYTES - 1]; // capable of storing 800 individual bytes by default
+    reg [7:0] mem [0:NUM_OF_BYTES - 1];
     
     integer i;
 
     // write on posedge
     always @ (posedge clk)
     begin
-        if (reset)
+        if (mem_reset)
         begin
             // hardcoded bootrom
             {mem[3], mem[2], mem[1], mem[0]}     <= 32'b11100011101000000000000000000000; //      MOV R0, #0     ; R0 = 0
@@ -48,11 +53,9 @@ module memory #(parameter NUM_OF_BYTES = 1024)(
     always @ (*)
     begin
         if (address < NUM_OF_BYTES-3)
-        begin
             read_data = { mem[address+3], mem[address+2], mem[address+1], mem[address] };
-        end else begin
-            read_data = 32'bz;
-        end
+        else
+            read_data = 32'bx;
     end
-    
 endmodule
+

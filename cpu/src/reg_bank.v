@@ -21,7 +21,7 @@ module reg_bank(
            wire [31:0] read_C_data,
            wire [31:0] read_pc_data,
            wire  [3:0] read_cpsr_data,
-           wire [15:0] debug_out
+           wire [31:0] debug_out
     );
     
     localparam R0  = 4'd00, R1  = 4'd01, R2  = 4'd02, R3  = 4'd03,
@@ -75,6 +75,6 @@ module reg_bank(
     assign read_pc_data   = BANK[PC];
     assign read_cpsr_data = cpsr;
     
-    assign debug_out  = BANK[R0][15:0];
+    assign debug_out  = BANK[R0];
 
 endmodule

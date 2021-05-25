@@ -18,16 +18,16 @@ module memory_mapper(
 
            reg  [31:0] out_nvm_address,
            reg  [31:0] out_nvm_write_data,
-           reg  [31:0] out_nvm_write_en,
+           reg         out_nvm_write_en,
            
            reg         out_mmio_reset,
            reg  [31:0] out_mmio_address,
            reg  [31:0] out_mmio_write_data,
-           reg  [31:0] out_mmio_write_en,
+           reg         out_mmio_write_en,
            
            reg  [31:0] out_bram_address,
            reg  [31:0] out_bram_write_data,
-           reg  [31:0] out_bram_write_en
+           reg         out_bram_write_en
     );
     
     localparam ENABLE = 1'b1, DISABLE = 1'b0;
@@ -37,7 +37,7 @@ module memory_mapper(
         out_mmio_reset = in_mem_reset;
     
         // Bootrom: 0x0000_0000 <--> 0x0000_03FF => 1024B
-        if (in_address < 32'h0000_0400)
+        if (in_address >= 32'h0000_0000 && in_address < 32'h0000_0400)
         begin
             out_bootrom_address  = in_address;
             
@@ -57,7 +57,7 @@ module memory_mapper(
         end
         
         // NVM data memory 0x0000_0400 <--> 0x0037_FFFF => 3583KB = ~3.499MB
-        else if (in_address < 32'h0038_0000)
+        else if (in_address >= 32'h0000_0400 && in_address < 32'h0038_0000)
         begin
             // currently unavailable...
             out_bootrom_address  = 32'b0;
@@ -78,7 +78,7 @@ module memory_mapper(
         end
         
         // Mapped I/O
-        else if (in_address < 32'h0038_0400)
+        else if (in_address >= 32'h0038_0000 && in_address < 32'h0038_0400)
         begin
             // what I/O ports do we have? Map them here...
             
@@ -101,7 +101,7 @@ module memory_mapper(
         end
         
         // BRAM 0x0038_0400 <--> 0x0039_93FF => 100KB
-        else if (in_address < 32'h0039_9400)
+        else if (in_address >= 32'h0038_0400 && in_address < 32'h0039_9400)
         begin
             out_bootrom_address  = 32'b0;
             
@@ -113,7 +113,7 @@ module memory_mapper(
             out_mmio_write_data = 32'b0;
             out_mmio_write_en   =  1'b0;
             
-            out_bram_address     = in_address - 32'h0038_0400;
+            out_bram_address     = (in_address - 32'h0038_0400) >> 2; // divide by 4, bram has 4byte data output
             out_bram_write_data  = in_data;
             out_bram_write_en    = in_write_en;
 

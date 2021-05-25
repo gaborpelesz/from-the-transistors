@@ -14,7 +14,7 @@ module pinky(
     
     wire        cpu_control_reset;
     wire [31:0] cpu_address_bus;
-    wire [31:0] cpu_mem_write_en;
+    wire        cpu_mem_write_en;
     wire [31:0] cpu_mem_write_data;
     wire [31:0] cpu_mem_read_data;
     wire [31:0] cpu_debug_output;
@@ -59,7 +59,7 @@ module pinky(
                                                      .read_data(bootrom_read_data));
     
     /* BRAM INIT (100KB) */
-    bram_spram #(.DEPTH(1024*100)) bram_inst (.clk(clk),
+    bram_spram #(.WIDTH(32), .DEPTH(1024*25)) bram_inst (.clk(clk),
                                               .address(bram_address),
                                               .write_en(bram_write_en),
                                               .write_data(bram_write_data),

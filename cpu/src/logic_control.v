@@ -76,12 +76,13 @@ module logic_control(
     localparam DATA_PROV_MEM_READ    = 1'b0,
                DATA_PROV_INSTRUCTION = 1'b1;
     
-    localparam PIPELINE_RESET_1 = 3'b000,
-               PIPELINE_RESET_2 = 3'b001,
-               PIPELINE_FETCH   = 3'b010,
-               PIPELINE_DECODE  = 3'b011,
-               PIPELINE_EXECUTE = 3'b100,
-               PIPELINE_STALL   = 3'b101;
+    localparam PIPELINE_RESET_1       = 3'b000,
+               PIPELINE_RESET_2       = 3'b001,
+               PIPELINE_FETCH         = 3'b010,
+               PIPELINE_DECODE        = 3'b011,
+               PIPELINE_EXECUTE       = 3'b100,
+               PIPELINE_EXECUTE_STORE = 3'b101;
+               //PIPELINE_STALL   = 3'b101;
     
     // fetch-decode pipeline registers
     reg [31:0] fd_instruction = 32'b11100001101000000000000000000000; // initialize to NOP (MOV R0, R0)
@@ -90,24 +91,28 @@ module logic_control(
     assign decoded_instruction_type = {fd_instruction[27:25], fd_instruction[4]}; // ARM ARM p110   
     
     // decode-execute pipeline registers
-    wire   [3:0] w_de_reg_read_A_sel;
-    wire   [3:0] w_de_reg_read_B_sel;
-    wire   [3:0] w_de_reg_write_sel;
-    wire   [2:0] w_de_barrel_op_sel;
-    wire   [3:0] w_de_alu_op_sel;
-    wire  [31:0] w_de_barrel_shift_val;
-    wire  [31:0] w_de_immediate_value;
-    wire         w_de_reg_read_B_en;
-    wire         w_de_data_prov_b_bus_en;
-    wire         w_de_imm_output_en;
-    wire         w_de_reg_write_en;
-    wire         w_de_reg_pc_write_en;
-    wire         w_de_reg_lr_write_en;
-    wire         w_de_reg_cpsr_write_en;
-    wire         w_de_data_out_en;
-    wire         w_de_mem_write_en;
-    wire         w_de_addreg_update;
-    wire   [1:0] w_de_addreg_sel;
+    wire   [3:0] de_reg_read_A_sel;
+    wire   [3:0] de_reg_read_B_sel;
+    wire   [3:0] de_reg_write_sel;
+    wire   [2:0] de_barrel_op_sel;
+    wire   [3:0] de_alu_op_sel;
+    wire  [31:0] de_barrel_shift_val;
+    wire  [31:0] de_immediate_value;
+    wire         de_reg_read_B_en;
+    wire         de_data_prov_b_bus_en;
+    wire         de_imm_output_en;
+    wire         de_reg_write_en;
+    wire         de_reg_pc_write_en;
+    wire         de_reg_lr_write_en;
+    wire         de_reg_cpsr_write_en;
+    wire         de_data_out_en;
+    wire         de_mem_write_en;
+    wire         de_addreg_update;
+    wire   [1:0] de_addreg_sel;
+
+    // multi cycle execute pipeline regs
+    reg          ex_mem_write_en;
+    reg          ex_data_out_en;
 
     /* Immediate data provider module init */
     reg         imm_output_en   = DISABLE;
@@ -120,25 +125,25 @@ module logic_control(
     instruction_decoder instruction_decoder_inst (fd_instruction,
                                                   reg_shifter_value,
                                                   in_cpsr,
-                                                  w_de_reg_read_A_sel,
-                                                  w_de_reg_read_B_sel,
+                                                  de_reg_read_A_sel,
+                                                  de_reg_read_B_sel,
                                                   reg_read_C_sel,
-                                                  w_de_reg_write_sel,
-                                                  w_de_barrel_op_sel,
-                                                  w_de_alu_op_sel,
-                                                  w_de_barrel_shift_val,
-                                                  w_de_immediate_value,
-                                                  w_de_reg_read_B_en,
-                                                  w_de_data_prov_b_bus_en,
-                                                  w_de_imm_output_en,
-                                                  w_de_reg_write_en,
-                                                  w_de_reg_pc_write_en,
-                                                  w_de_reg_lr_write_en,
-                                                  w_de_reg_cpsr_write_en,
-                                                  w_de_data_out_en,
-                                                  w_de_mem_write_en,
-                                                  w_de_addreg_update,
-                                                  w_de_addreg_sel);
+                                                  de_reg_write_sel,
+                                                  de_barrel_op_sel,
+                                                  de_alu_op_sel,
+                                                  de_barrel_shift_val,
+                                                  de_immediate_value,
+                                                  de_reg_read_B_en,
+                                                  de_data_prov_b_bus_en,
+                                                  de_imm_output_en,
+                                                  de_reg_write_en,
+                                                  de_reg_pc_write_en,
+                                                  de_reg_lr_write_en,
+                                                  de_reg_cpsr_write_en,
+                                                  de_data_out_en,
+                                                  de_mem_write_en,
+                                                  de_addreg_update,
+                                                  de_addreg_sel);
     
     /* Pipeline state machine */
     reg [2:0] pipeline_current_state = PIPELINE_RESET_1;
@@ -153,17 +158,18 @@ module logic_control(
     
     always @ (*) 
     begin
-        // RESET -> FETCH -> DECODE -> EXECUTE _ 
-        //           _^_                        \
-        //            \_________________________/
+        // RESET -> FETCH -> DECODE -> EXECUTE ----> EXECUTE ----> EXECUTE ___ 
+        //           _^_                         \             \              \
+        //            \__________________________/_____________/______________/
         //
         case (pipeline_current_state)
-            PIPELINE_RESET_1 : pipeline_next_state = PIPELINE_RESET_2;
-            PIPELINE_RESET_2 : pipeline_next_state = PIPELINE_FETCH;
-            PIPELINE_FETCH   : pipeline_next_state = PIPELINE_DECODE;
-            PIPELINE_DECODE  : pipeline_next_state = PIPELINE_EXECUTE;
-            PIPELINE_EXECUTE : pipeline_next_state = PIPELINE_FETCH;
-            default          : pipeline_next_state = PIPELINE_RESET_1;
+            PIPELINE_RESET_1       : pipeline_next_state = PIPELINE_RESET_2;
+            PIPELINE_RESET_2       : pipeline_next_state = PIPELINE_FETCH;
+            PIPELINE_FETCH         : pipeline_next_state = PIPELINE_DECODE;
+            PIPELINE_DECODE        : pipeline_next_state = de_mem_write_en ? PIPELINE_EXECUTE_STORE : PIPELINE_EXECUTE;
+            PIPELINE_EXECUTE_STORE : pipeline_next_state = PIPELINE_EXECUTE;
+            PIPELINE_EXECUTE       : pipeline_next_state = PIPELINE_FETCH; // either de_data_prov_b_bus_en or mem_write_en or data_out_en is on, go to execute_2 instead
+            default                : pipeline_next_state = PIPELINE_RESET_1;
         endcase
     end
     
@@ -232,32 +238,41 @@ module logic_control(
         
         else if (pipeline_current_state == PIPELINE_DECODE)
             begin
-                mem_write_en    <= w_de_mem_write_en;
-                data_out_en     <= w_de_data_out_en;
+                ex_mem_write_en <= de_mem_write_en;
+                ex_data_out_en  <= de_data_out_en;
                 
-                // de_reg_pc_write_en <= w_de_reg_pc_write_en; // hard-coded no branch
-                // de_addreg_sel      <= w_de_addreg_sel; // hard-coded no branch
-                // de_addreg_update   <= w_de_addreg_update; // hard-coded no branch
-                if (w_de_addreg_sel == ADDRESS_SELECT_ALU)
-                begin
-                    address_reg_sel <= ADDRESS_SELECT_ALU;
-                    update_address  <= ENABLE;
-                    reg_pc_write_en <= ENABLE;
-                end
+                address_reg_sel <= de_addreg_sel;
+                update_address  <= de_addreg_update;
+                reg_pc_write_en <= de_reg_pc_write_en;
                 
-                reg_read_A_sel     <= w_de_reg_read_A_sel;
-                reg_read_B_sel     <= w_de_reg_read_B_sel;
-                reg_write_sel      <= w_de_reg_write_sel;
-                immediate_value    <= w_de_immediate_value;
-                data_prov_b_bus_en <= w_de_data_prov_b_bus_en;
-                barrel_shift_val   <= w_de_barrel_shift_val;
-                barrel_op_sel      <= w_de_barrel_op_sel;
-                alu_op_sel         <= w_de_alu_op_sel;
-                imm_output_en      <= w_de_imm_output_en;
-                reg_read_B_en      <= w_de_reg_read_B_en;
-                reg_write_en       <= w_de_reg_write_en;
-                reg_lr_write_en    <= w_de_reg_lr_write_en;
-                reg_cpsr_write_en  <= w_de_reg_cpsr_write_en;
+                reg_read_A_sel     <= de_reg_read_A_sel;
+                reg_read_B_sel     <= de_reg_read_B_sel;
+                reg_write_sel      <= de_reg_write_sel;
+                immediate_value    <= de_immediate_value;
+                data_prov_b_bus_en <= de_data_prov_b_bus_en;
+                barrel_shift_val   <= de_barrel_shift_val;
+                barrel_op_sel      <= de_barrel_op_sel;
+                alu_op_sel         <= de_alu_op_sel;
+                imm_output_en      <= de_imm_output_en;
+                reg_read_B_en      <= de_reg_read_B_en;
+                reg_write_en       <= de_reg_write_en;
+                reg_lr_write_en    <= de_reg_lr_write_en;
+                reg_cpsr_write_en  <= de_reg_cpsr_write_en;
+            end
+            
+        else if (pipeline_current_state == PIPELINE_EXECUTE_STORE)
+            begin
+               // b bus tri-state, set Rd on mem bus
+               reg_read_B_en <= ENABLE;
+               imm_output_en <= DISABLE;
+               data_prov_b_bus_en <= DISABLE;
+            
+               mem_write_en <= ex_mem_write_en; // should always be ENABLED
+               data_out_en  <= ex_data_out_en;  // should always be ENABLED
+               
+               address_reg_sel <= ADDRESS_SELECT_PC;
+               update_address  <= ENABLE;
+               reg_pc_write_en <= DISABLE;
             end
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)

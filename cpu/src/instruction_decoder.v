@@ -103,7 +103,7 @@ module instruction_decoder(
             
                 de_reg_read_A_sel = current_instruction[19:16]; // Rn
                 de_reg_read_B_sel = current_instruction[3:0];   // Rm
-                reg_read_C_sel    = R0;                    // Rs
+                reg_read_C_sel    = R0;                         // Rs
                 de_reg_write_sel  = current_instruction[15:12]; // Rd
                 
                 de_barrel_op_sel  = current_instruction[11:7] == 0 ? BARREL_OP_RRX : {1'b0, current_instruction[6:5]};
@@ -121,9 +121,18 @@ module instruction_decoder(
                 de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
-                de_reg_pc_write_en = ENABLE;
-                de_addreg_update   = ENABLE;
-                de_addreg_sel      = de_reg_write_sel == PC ? ADDRESS_SELECT_ALU : ADDRESS_SELECT_INC;
+                if (de_reg_write_sel == PC)
+                begin
+                    de_reg_pc_write_en = ENABLE;
+                    de_addreg_update   = ENABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_ALU;
+                end
+                else
+                begin
+                    de_reg_pc_write_en = DISABLE;
+                    de_addreg_update   = DISABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_INC;
+                end
             end
         else if (decoded_instruction_type == DECODE_DATA_PROC_REG_SHIFT)
             begin
@@ -155,9 +164,18 @@ module instruction_decoder(
                 de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
-                de_reg_pc_write_en = ENABLE;
-                de_addreg_update   = ENABLE;
-                de_addreg_sel      = de_reg_write_sel == PC ? ADDRESS_SELECT_ALU : ADDRESS_SELECT_INC;
+                if (de_reg_write_sel == PC)
+                begin
+                    de_reg_pc_write_en = ENABLE;
+                    de_addreg_update   = ENABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_ALU;
+                end
+                else
+                begin
+                    de_reg_pc_write_en = DISABLE;
+                    de_addreg_update   = DISABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_INC;
+                end
             end
             
         else if (decoded_instruction_type == DECODE_DATA_PROC_IMM_1 || decoded_instruction_type == DECODE_DATA_PROC_IMM_2)
@@ -171,11 +189,11 @@ module instruction_decoder(
                 de_mem_write_en       = DISABLE;  
             
                 de_reg_read_A_sel = current_instruction[19:16]; // Rn
-                de_reg_read_B_sel = R0;                    // Rm
-                reg_read_C_sel    = R0;                    // Rs
+                de_reg_read_B_sel = R0;                         // Rm
+                reg_read_C_sel    = R0;                         // Rs
                 de_reg_write_sel  = current_instruction[15:12]; // Rd
                 
-                de_barrel_op_sel  = {1'b0, current_instruction[6:5]}; // no RRX with register shift
+                de_barrel_op_sel  = BARREL_OP_LSL; // no RRX with register shift
                 de_alu_op_sel     = current_instruction[24:21];
                 
                 de_barrel_shift_val = {27'b0, current_instruction[11:8], 1'b0}; // shift_val = rotate_imm * 2
@@ -190,9 +208,18 @@ module instruction_decoder(
                 de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = current_instruction[20];
                 
-                de_reg_pc_write_en = ENABLE;
-                de_addreg_update   = ENABLE;
-                de_addreg_sel      = de_reg_write_sel == PC ? ADDRESS_SELECT_ALU : ADDRESS_SELECT_INC;
+                if (de_reg_write_sel == PC)
+                begin
+                    de_reg_pc_write_en = ENABLE;
+                    de_addreg_update   = ENABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_ALU;
+                end
+                else
+                begin
+                    de_reg_pc_write_en = DISABLE;
+                    de_addreg_update   = DISABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_INC;
+                end
             end
             
         else if (decoded_instruction_type == DECODE_BRANCH_AND_BL_1 || decoded_instruction_type == DECODE_BRANCH_AND_BL_2)
@@ -240,7 +267,7 @@ module instruction_decoder(
             begin
                 P = current_instruction[24];
                 U = current_instruction[23];
-                B = current_instruction[22];
+                B = current_instruction[22]; // It is possible that the B option is useless because we can always retrieve words in 1 cycle from BRAM 
                 W = current_instruction[21];
                 L = current_instruction[20];
             
@@ -259,13 +286,13 @@ module instruction_decoder(
                             de_reg_lr_write_en    = DISABLE;
                             de_reg_cpsr_write_en  = DISABLE;
                             
-                            de_data_out_en        = DISABLE;
-                            de_mem_write_en       = DISABLE;
+                            de_data_out_en        = ENABLE;
+                            de_mem_write_en       = ENABLE;
                         
                             de_reg_read_A_sel = current_instruction[19:16];
-                            de_reg_read_B_sel = R0; 
+                            de_reg_read_B_sel = current_instruction[15:12]; 
                             reg_read_C_sel    = R0;
-                            de_reg_write_sel  = current_instruction[15:12]; 
+                            de_reg_write_sel  = R0; 
                             
                             de_barrel_op_sel  = BARREL_OP_LSL;
                             de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
@@ -274,9 +301,9 @@ module instruction_decoder(
                             
                             de_immediate_value  = current_instruction[11:0]; 
                             
-                            de_reg_pc_write_en = ENABLE;
+                            de_reg_pc_write_en = DISABLE;
                             de_addreg_update   = ENABLE;
-                            de_addreg_sel      = ADDRESS_SELECT_INC;
+                            de_addreg_sel      = ADDRESS_SELECT_ALU;
                         end
                         else        // pre-indexed addressing (P == 1 && W == 1)
                         begin
@@ -289,36 +316,34 @@ module instruction_decoder(
                 end
                 else // L == 1 -> LOAD (ARM ARM pdf p193)
                 begin
+                    // B bus tri-state
+                    de_reg_read_B_en      = DISABLE;
+                    de_data_prov_b_bus_en = DISABLE;
+                    de_imm_output_en      = DISABLE;
                     
+                    de_reg_write_en       = DISABLE;
+                    de_reg_lr_write_en    = DISABLE;
+                    de_reg_cpsr_write_en  = DISABLE;
+                    
+                    de_data_out_en        = DISABLE;
+                    de_mem_write_en       = DISABLE;
+                
+                    de_reg_read_A_sel = R0;
+                    de_reg_read_B_sel = R0; 
+                    reg_read_C_sel    = R0;
+                    de_reg_write_sel  = R0; 
+                    
+                    de_barrel_op_sel  = BARREL_OP_LSL;
+                    de_alu_op_sel     = ALU_OP_ADD;
+                    
+                    de_barrel_shift_val = 32'b0;
+                    
+                    de_immediate_value  = 32'b0; 
+                    
+                    de_reg_pc_write_en = DISABLE;
+                    de_addreg_update   = DISABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_INC;
                 end
-            
-                // B bus tri-state
-                de_reg_read_B_en      = DISABLE;
-                de_data_prov_b_bus_en = DISABLE;
-                de_imm_output_en      = DISABLE;
-                
-                de_reg_write_en       = DISABLE;
-                de_reg_lr_write_en    = DISABLE;
-                de_reg_cpsr_write_en  = DISABLE;
-                
-                de_data_out_en        = DISABLE;
-                de_mem_write_en       = DISABLE;
-            
-                de_reg_read_A_sel = R0;
-                de_reg_read_B_sel = R0; 
-                reg_read_C_sel    = R0;
-                de_reg_write_sel  = R0; 
-                
-                de_barrel_op_sel  = BARREL_OP_LSL;
-                de_alu_op_sel     = ALU_OP_ADD;
-                
-                de_barrel_shift_val = 32'b0;
-                
-                de_immediate_value  = 32'b0; 
-                
-                de_reg_pc_write_en = ENABLE;
-                de_addreg_update   = ENABLE;
-                de_addreg_sel      = ADDRESS_SELECT_INC;
             end
             
         else if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
@@ -347,8 +372,8 @@ module instruction_decoder(
                 
                 de_immediate_value  = 32'b0; 
                 
-                de_reg_pc_write_en = ENABLE;
-                de_addreg_update   = ENABLE;
+                de_reg_pc_write_en = DISABLE;
+                de_addreg_update   = DISABLE;
                 de_addreg_sel      = ADDRESS_SELECT_INC;
             end
             

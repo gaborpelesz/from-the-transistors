@@ -45,7 +45,6 @@ module conditional_evaluator(
             CONDITION_LE     : out_execute_en =  Z & (N != V);
             CONDITION_AL     : out_execute_en = 1'b1;
             CONDITION_UNPRED : out_execute_en = 1'b0;
-            default          : out_execute_en = 1'b0; // should never happen
         endcase
     end
     

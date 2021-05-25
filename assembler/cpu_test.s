@@ -1,8 +1,10 @@
-     MOV R0, #0     ; R0 = 0
-     BL inc         ; subroutine call to inc
+     MOV R0, #20           ; R0 = 20
+     
+     ; constructing address in R13: 0x0038_0400
+     MOV R13, #56, 16
+     ORR R13, R13, #4, 8
+
+     STR R0, [R13, #+4] ; address: 0x0038_0404
+
 nop: MOV R0, R0     ; else NOP => No OPeration
      B nop          ; NOP forever
-inc: ADD R0, R0, #1 ; ++R0
-     TEQ R0, #39    ; R0 == 39
-     BNE inc        ; if (R0 != 39) goto inc;
-     MOV R15, R14   ; return from subroutine

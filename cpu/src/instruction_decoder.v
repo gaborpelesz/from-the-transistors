@@ -2,7 +2,7 @@
 
 module instruction_decoder(
     input  wire [31:0] fd_instruction,
-           wire [31:0] reg_shifter_value,
+           wire [31:0] reg_read_C_bus,
            wire  [3:0] in_cpsr,
     output reg   [3:0] de_reg_read_A_sel,
            reg   [3:0] de_reg_read_B_sel,
@@ -159,7 +159,7 @@ module instruction_decoder(
                 de_barrel_op_sel  = {1'b0, conditioned_instruction[6:5]}; // no RRX with register shift
                 de_alu_op_sel     = conditioned_instruction[24:21];
                 
-                de_barrel_shift_val = reg_shifter_value;
+                de_barrel_shift_val = reg_read_C_bus;
                 de_immediate_value  = 32'b0;
                 
                 // don't update register if updating with test instructions the CPSR
@@ -272,7 +272,7 @@ module instruction_decoder(
                 de_addreg_sel      = ADDRESS_SELECT_ALU; // next fetch will be the computed value from the ALU
             end
             
-        else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2)
+        else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2 || decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
             begin
                 P = conditioned_instruction[24];
                 U = conditioned_instruction[23];
@@ -280,8 +280,33 @@ module instruction_decoder(
                 W = conditioned_instruction[21];
                 L = conditioned_instruction[20];
             
+                de_reg_lr_write_en    = DISABLE;
+                de_reg_cpsr_write_en  = DISABLE;
+                
+                de_reg_read_A_sel = conditioned_instruction[19:16];
+                de_reg_read_B_sel = conditioned_instruction[15:12];
+                de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn
+                                        
+                // update address register with the calculated address from the ALU
+                de_reg_pc_write_en = DISABLE;
+                de_addreg_update   = ENABLE;
+                de_addreg_sel      = ADDRESS_SELECT_ALU;
+                
+                de_barrel_op_sel  = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[6:5] : BARREL_OP_LSL;
+                de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
+                
+                if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
+                begin
+                    reg_read_C_sel = conditioned_instruction[3:0];
+                    de_immediate_value = reg_read_C_bus;
+                end
+                else
+                    de_immediate_value = conditioned_instruction[11:0];
+            
                 if (L == 0) // STORE (ARM ARM pdf p343)
                 begin
+                    de_mem_write_en = ENABLE;
+                
                     if (P == 1)
                     begin
                         // B bus tri-state
@@ -290,29 +315,11 @@ module instruction_decoder(
                         de_imm_output_en      = ENABLE;  // address offset provided from an immediate on B bus
                         
                         de_reg_write_en       = W == 0 ? DISABLE : ENABLE;  // update base register (pre-indexed) if W == 1
-                        de_reg_lr_write_en    = DISABLE;
-                        de_reg_cpsr_write_en  = DISABLE;
                         
                         de_data_out_reg_write_en = DISABLE;
                         de_data_out_sel          = DATA_OUT_PASS_THROUGH;
-                        de_mem_write_en       = ENABLE;
-
-                        de_reg_read_A_sel = conditioned_instruction[19:16];
-                        de_reg_read_B_sel = conditioned_instruction[15:12]; 
-                        reg_read_C_sel    = R0;
-                        de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn 
                         
-                        de_barrel_op_sel  = BARREL_OP_LSL;
-                        de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
-                        
-                        de_barrel_shift_val = 32'b0;
-                        
-                        de_immediate_value  = conditioned_instruction[11:0]; 
-                        
-                        // update address register with the calculated address from the ALU
-                        de_reg_pc_write_en = DISABLE;
-                        de_addreg_update   = ENABLE;
-                        de_addreg_sel      = ADDRESS_SELECT_ALU;
+                        de_barrel_shift_val = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[11:7] : 32'b0;
                     end
                     else            // post-indexed addressing (P == 0)
                     begin           // unpriviliged memory access is not implemented (W bit doesn't matter)
@@ -321,97 +328,21 @@ module instruction_decoder(
                         de_data_prov_b_bus_en = DISABLE;
                         de_imm_output_en      = DISABLE;  // address offset provided from an immediate on B bus
                         
-                        de_reg_write_en       = DISABLE;  // no update on first cycle (post-indexed)
-                        de_reg_lr_write_en    = DISABLE;
-                        de_reg_cpsr_write_en  = DISABLE;
+                        de_reg_write_en       = DISABLE;  // no update on first cycle, logic control will update this on second cycle (post-indexed)
                         
                         de_data_out_reg_write_en = ENABLE;
                         de_data_out_sel          = DATA_OUT_LATCHED;
-                        de_mem_write_en          = ENABLE;
-
-                        de_reg_read_A_sel = conditioned_instruction[19:16];
-                        de_reg_read_B_sel = conditioned_instruction[15:12]; 
-                        reg_read_C_sel    = R0;
-                        de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn 
                         
-                        de_barrel_op_sel  = BARREL_OP_LSL;
-                        de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
-                        
-                        de_barrel_shift_val = 32'hFFFF_FFFF; // making the result of the barrel shifter == 0,
-                                                             // so the first cycle of the Store operation doesn't contribute
-                                                             // to the address. Rather on the B-bus the data is available. 
-                        
-                        de_immediate_value  = conditioned_instruction[11:0]; 
-                        
-                        // update address register with the calculated address from the ALU
-                        de_reg_pc_write_en = DISABLE;
-                        de_addreg_update   = ENABLE;
-                        de_addreg_sel      = ADDRESS_SELECT_ALU;
+                        de_barrel_shift_val = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[11:7] : 32'b0; // making the result of the barrel shifter == 0,
+                                                                                                                                                     // so the first cycle of the Store operation doesn't contribute
+                                                                                                                                                     // to the address. Rather on the B-bus the data is available. 
                     end
                 end
+
                 else // L == 1 -> LOAD (ARM ARM pdf p193)
                 begin
-                    // B bus tri-state
-                    de_reg_read_B_en      = DISABLE;
-                    de_data_prov_b_bus_en = DISABLE;
-                    de_imm_output_en      = DISABLE;
-                    
-                    de_reg_write_en       = DISABLE;
-                    de_reg_lr_write_en    = DISABLE;
-                    de_reg_cpsr_write_en  = DISABLE;
-                    
-                    de_data_out_reg_write_en = DISABLE;
-                    de_data_out_sel          = DATA_OUT_HIGH_IMP;
-                    de_mem_write_en       = DISABLE;
-                
-                    de_reg_read_A_sel = R0;
-                    de_reg_read_B_sel = R0; 
-                    reg_read_C_sel    = R0;
-                    de_reg_write_sel  = R0; 
-                    
-                    de_barrel_op_sel  = BARREL_OP_LSL;
-                    de_alu_op_sel     = ALU_OP_ADD;
-                    
-                    de_barrel_shift_val = 32'b0;
-                    
-                    de_immediate_value  = 32'b0; 
-                    
-                    de_reg_pc_write_en = DISABLE;
-                    de_addreg_update   = DISABLE;
-                    de_addreg_sel      = ADDRESS_SELECT_INC;
+                    // .....
                 end
-            end
-            
-        else if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
-            begin
-                // B bus tri-state
-                de_reg_read_B_en      = DISABLE;
-                de_data_prov_b_bus_en = DISABLE;
-                de_imm_output_en      = DISABLE;
-                
-                de_reg_write_en       = DISABLE;
-                de_reg_lr_write_en    = DISABLE;
-                de_reg_cpsr_write_en  = DISABLE;
-                
-                 de_data_out_reg_write_en = DISABLE;
-                de_data_out_sel          = DATA_OUT_HIGH_IMP;
-                de_mem_write_en       = DISABLE;
-            
-                de_reg_read_A_sel = R0;
-                de_reg_read_B_sel = R0; 
-                reg_read_C_sel    = R0;
-                de_reg_write_sel  = R0; 
-                
-                de_barrel_op_sel  = BARREL_OP_LSL;
-                de_alu_op_sel     = ALU_OP_ADD;
-                
-                de_barrel_shift_val = 32'b0;
-                
-                de_immediate_value  = 32'b0; 
-                
-                de_reg_pc_write_en = DISABLE;
-                de_addreg_update   = DISABLE;
-                de_addreg_sel      = ADDRESS_SELECT_INC;
             end
             
         else // default to not infer latch, should never happen

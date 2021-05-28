@@ -4,7 +4,7 @@
 module logic_control(
     input  wire        clk,
            wire        reset,
-           wire [31:0] reg_shifter_value,
+           wire [31:0] reg_read_C_bus,
            wire [31:0] mem_data_prov_instruction,
            wire  [3:0] in_cpsr,
     output reg         mem_write_en,
@@ -130,7 +130,7 @@ module logic_control(
     
     /* INSTRUCTION DECODER MODULE */
     instruction_decoder instruction_decoder_inst (fd_instruction,
-                                                  reg_shifter_value,
+                                                  reg_read_C_bus,
                                                   in_cpsr,
                                                   de_reg_read_A_sel,
                                                   de_reg_read_B_sel,
@@ -261,8 +261,18 @@ module logic_control(
                 reg_write_sel      <= de_reg_write_sel;
                 immediate_value    <= de_immediate_value;
                 data_prov_b_bus_en <= de_data_prov_b_bus_en;
-                barrel_shift_val   <= de_barrel_shift_val;
-                barrel_op_sel      <= de_barrel_op_sel;
+                
+                if (de_data_out_reg_write_en == ENABLE && de_data_out_sel == DATA_OUT_LATCHED)
+                begin
+                    barrel_shift_val   <= 32'hFFFF_FFFF;
+                    barrel_op_sel      <= BARREL_OP_LSL;
+                end
+                else
+                begin
+                    barrel_shift_val   <= de_barrel_shift_val;
+                    barrel_op_sel      <= de_barrel_op_sel;
+                end
+                
                 alu_op_sel         <= de_alu_op_sel;
                 imm_output_en      <= de_imm_output_en;
                 reg_read_B_en      <= de_reg_read_B_en;
@@ -292,7 +302,8 @@ module logic_control(
                     imm_output_en <= ENABLE;
                     data_prov_b_bus_en <= DISABLE;
                     
-                    barrel_shift_val <= 32'b0; // disable B-bus value elimination
+                    barrel_shift_val   <= de_barrel_shift_val;
+                    barrel_op_sel      <= de_barrel_op_sel;
                 end
                 else // pre-indexed, immediate offset
                 begin

@@ -41,7 +41,8 @@ module cpu(
     wire  [3:0] c_alu_op_sel;
     
     wire        c_data_prov_b_bus_en;
-    wire        c_data_out_en;
+    wire  [1:0] c_data_out_sel;
+    wire        c_data_out_reg_write_en;
     
     wire [31:0] c_reg_shifter_value;
     
@@ -73,7 +74,8 @@ module cpu(
                                       .barrel_op_sel(c_barrel_op_sel),
                                       .alu_op_sel(c_alu_op_sel),
                                       .data_prov_b_bus_en(c_data_prov_b_bus_en),
-                                      .data_out_en(c_data_out_en),
+                                      .data_out_sel(c_data_out_sel),
+                                      .data_out_reg_write_en(c_data_out_reg_write_en),
                                       .control_reset(c_reset),
                                       .out_immediate_value(B_bus));
     
@@ -145,8 +147,10 @@ module cpu(
                                               .data_out1(instruction_bus));
                                               
     /* WRITE DATA REGISTER INIT */
-    write_data_register write_data_register_inst (.B_bus(B_bus),
-                                                  .data_out_en(c_data_out_en),
+    write_data_register write_data_register_inst (.clk(clk),
+                                                  .B_bus(B_bus),
+                                                  .data_out_sel(c_data_out_sel),
+                                                  .reg_write_en(c_data_out_reg_write_en),
                                                   .data_out(out_mem_write_data));
     
 endmodule

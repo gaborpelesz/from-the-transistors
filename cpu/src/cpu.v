@@ -44,7 +44,7 @@ module cpu(
     wire  [1:0] c_data_out_sel;
     wire        c_data_out_reg_write_en;
     
-    wire [31:0] c_reg_shifter_value;
+    wire [31:0] c_reg_read_C_bus;
     
     wire  [3:0] reg_write_cpsr;
     wire  [3:0] reg_read_cpsr;
@@ -55,7 +55,7 @@ module cpu(
     /* DECODE AND LOGIC CONTROL MODULE INIT */
     logic_control logic_control_inst (.clk(clk),
                                       .reset(reset),
-                                      .reg_shifter_value(c_reg_shifter_value),
+                                      .reg_read_C_bus(c_reg_read_C_bus),
                                       .mem_data_prov_instruction(instruction_bus),
                                       .in_cpsr(reg_read_cpsr),
                                       .mem_write_en(out_mem_write_en),
@@ -96,7 +96,7 @@ module cpu(
                             .reset(c_reset),
                             .read_A_data(A_bus),
                             .read_B_data(B_bus),
-                            .read_C_data(c_reg_shifter_value),
+                            .read_C_data(c_reg_read_C_bus),
                             .read_pc_data(PC_bus),
                             .read_cpsr_data(reg_read_cpsr),
                             .debug_out(out_reg_debug_data));

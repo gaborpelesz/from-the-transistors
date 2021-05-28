@@ -19,7 +19,8 @@ module instruction_decoder(
            reg         de_reg_pc_write_en,
            reg         de_reg_lr_write_en,
            reg         de_reg_cpsr_write_en,
-           reg         de_data_out_en,
+           reg   [1:0] de_data_out_sel,
+           reg         de_data_out_reg_write_en,
            reg         de_mem_write_en,
            reg         de_addreg_update,
            reg   [1:0] de_addreg_sel
@@ -64,6 +65,10 @@ module instruction_decoder(
                ALU_OP_BIC = 4'b1110, // bit clear
                ALU_OP_MVN = 4'b1111; // move not, only important when updating CPSR
                
+    localparam DATA_OUT_HIGH_IMP     = 2'b00,
+               DATA_OUT_PASS_THROUGH = 2'b01,
+               DATA_OUT_LATCHED      = 2'b10;
+               
     localparam DISABLE = 1'b0,
                ENABLE  = 1'b1;
                
@@ -78,7 +83,7 @@ module instruction_decoder(
                                                      .in_cond(fd_instruction[31:28]),
                                                      .out_execute_en(execute_en));
 
-    reg [31:0] current_instruction;
+    reg [31:0] conditioned_instruction;
     reg  [3:0] decoded_instruction_type;
     
     reg P, U, B, W, L; // load-store variables
@@ -86,9 +91,9 @@ module instruction_decoder(
     always @ (*)
     begin
         // check if condition is met decode instruction else replace it with NOP
-        current_instruction = execute_en == 0 ? INSTRUCTION_NOP : fd_instruction;
+        conditioned_instruction = execute_en == 0 ? INSTRUCTION_NOP : fd_instruction;
         
-        decoded_instruction_type = {current_instruction[27:25], current_instruction[4]}; // ARM ARM p110
+        decoded_instruction_type = {conditioned_instruction[27:25], conditioned_instruction[4]}; // ARM ARM p110
             
         
         if (decoded_instruction_type == DECODE_DATA_PROC_IMM_SHIFT)
@@ -98,18 +103,19 @@ module instruction_decoder(
                 de_data_prov_b_bus_en = DISABLE;
                 de_imm_output_en      = DISABLE;
                 
-                de_data_out_en        = DISABLE;
-                de_mem_write_en       = DISABLE;
+                de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
+                de_mem_write_en          = DISABLE;
             
-                de_reg_read_A_sel = current_instruction[19:16]; // Rn
-                de_reg_read_B_sel = current_instruction[3:0];   // Rm
+                de_reg_read_A_sel = conditioned_instruction[19:16]; // Rn
+                de_reg_read_B_sel = conditioned_instruction[3:0];   // Rm
                 reg_read_C_sel    = R0;                         // Rs
-                de_reg_write_sel  = current_instruction[15:12]; // Rd
+                de_reg_write_sel  = conditioned_instruction[15:12]; // Rd
                 
-                de_barrel_op_sel  = current_instruction[11:7] == 0 ? BARREL_OP_RRX : {1'b0, current_instruction[6:5]};
-                de_alu_op_sel     = current_instruction[24:21];
+                de_barrel_op_sel  = conditioned_instruction[11:7] == 0 ? BARREL_OP_RRX : {1'b0, conditioned_instruction[6:5]};
+                de_alu_op_sel     = conditioned_instruction[24:21];
                 
-                de_barrel_shift_val = {27'b0, current_instruction[11:7]};
+                de_barrel_shift_val = {27'b0, conditioned_instruction[11:7]};
                 de_immediate_value  = 32'b0;
                 
                 // don't update register if updating with test instructions the CPSR
@@ -119,7 +125,7 @@ module instruction_decoder(
                     de_reg_write_en = ENABLE;
                 
                 de_reg_lr_write_en    = DISABLE;
-                de_reg_cpsr_write_en  = current_instruction[20];
+                de_reg_cpsr_write_en  = conditioned_instruction[20];
                 
                 if (de_reg_write_sel == PC)
                 begin
@@ -141,16 +147,17 @@ module instruction_decoder(
                 de_data_prov_b_bus_en = DISABLE;
                 de_imm_output_en      = DISABLE;
                 
-                de_data_out_en        = DISABLE;
+                de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 de_mem_write_en       = DISABLE;
 
-                de_reg_read_A_sel = current_instruction[19:16]; // Rn
-                de_reg_read_B_sel = current_instruction[3:0];   // Rm
-                reg_read_C_sel    = current_instruction[11:8];  // Rs
-                de_reg_write_sel  = current_instruction[15:12]; // Rd
+                de_reg_read_A_sel = conditioned_instruction[19:16]; // Rn
+                de_reg_read_B_sel = conditioned_instruction[3:0];   // Rm
+                reg_read_C_sel    = conditioned_instruction[11:8];  // Rs
+                de_reg_write_sel  = conditioned_instruction[15:12]; // Rd
                 
-                de_barrel_op_sel  = {1'b0, current_instruction[6:5]}; // no RRX with register shift
-                de_alu_op_sel     = current_instruction[24:21];
+                de_barrel_op_sel  = {1'b0, conditioned_instruction[6:5]}; // no RRX with register shift
+                de_alu_op_sel     = conditioned_instruction[24:21];
                 
                 de_barrel_shift_val = reg_shifter_value;
                 de_immediate_value  = 32'b0;
@@ -162,7 +169,7 @@ module instruction_decoder(
                     de_reg_write_en = ENABLE;
                     
                 de_reg_lr_write_en    = DISABLE;
-                de_reg_cpsr_write_en  = current_instruction[20];
+                de_reg_cpsr_write_en  = conditioned_instruction[20];
                 
                 if (de_reg_write_sel == PC)
                 begin
@@ -185,19 +192,20 @@ module instruction_decoder(
                 de_data_prov_b_bus_en = DISABLE;
                 de_imm_output_en      = ENABLE;
                 
-                de_data_out_en        = DISABLE;
+                de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 de_mem_write_en       = DISABLE;  
             
-                de_reg_read_A_sel = current_instruction[19:16]; // Rn
+                de_reg_read_A_sel = conditioned_instruction[19:16]; // Rn
                 de_reg_read_B_sel = R0;                         // Rm
                 reg_read_C_sel    = R0;                         // Rs
-                de_reg_write_sel  = current_instruction[15:12]; // Rd
+                de_reg_write_sel  = conditioned_instruction[15:12]; // Rd
                 
                 de_barrel_op_sel  = BARREL_OP_LSL; // no RRX with register shift
-                de_alu_op_sel     = current_instruction[24:21];
+                de_alu_op_sel     = conditioned_instruction[24:21];
                 
-                de_barrel_shift_val = {27'b0, current_instruction[11:8], 1'b0}; // shift_val = rotate_imm * 2
-                de_immediate_value  = {24'b0, current_instruction[7:0]};
+                de_barrel_shift_val = {27'b0, conditioned_instruction[11:8], 1'b0}; // shift_val = rotate_imm * 2
+                de_immediate_value  = {24'b0, conditioned_instruction[7:0]};
                 
                 // don't update register if updating with test instructions the CPSR
                 if (de_alu_op_sel == ALU_OP_TST | de_alu_op_sel == ALU_OP_TEQ | de_alu_op_sel == ALU_OP_CMP | de_alu_op_sel == ALU_OP_CMN)
@@ -206,7 +214,7 @@ module instruction_decoder(
                     de_reg_write_en = ENABLE;
                 
                 de_reg_lr_write_en    = DISABLE;
-                de_reg_cpsr_write_en  = current_instruction[20];
+                de_reg_cpsr_write_en  = conditioned_instruction[20];
                 
                 if (de_reg_write_sel == PC)
                 begin
@@ -236,10 +244,11 @@ module instruction_decoder(
                 de_imm_output_en      = ENABLE;
                 
                 de_reg_write_en       = ENABLE;
-                de_reg_lr_write_en    = current_instruction[24]; // L bit in BL
-                de_reg_cpsr_write_en  = current_instruction[20];
+                de_reg_lr_write_en    = conditioned_instruction[24]; // L bit in BL
+                de_reg_cpsr_write_en  = conditioned_instruction[20];
                 
-                de_data_out_en        = DISABLE;
+                de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 de_mem_write_en       = DISABLE;
             
                 de_reg_read_A_sel = R15; // one of the operands is the PC
@@ -255,7 +264,7 @@ module instruction_decoder(
                 // if execution is pipelining
                 //de_immediate_value  = ($signed({current_instruction[23:0], 6'b0}) >>> 6) << 2; // (SignExtend_30(signed_immed_24) << 2)
                 // if not pipelining
-                de_immediate_value  = (($signed({current_instruction[23:0], 6'b0}) >>> 6) << 2) + 4; // + 4 because the current PC is pointing to the next instruction which is
+                de_immediate_value  = (($signed({conditioned_instruction[23:0], 6'b0}) >>> 6) << 2) + 4; // + 4 because the current PC is pointing to the next instruction which is
                                                                                                      // 4 bytes ahead, and not 8 which would be the case if we would pipeline
 
                 de_reg_pc_write_en = ENABLE;
@@ -265,53 +274,79 @@ module instruction_decoder(
             
         else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2)
             begin
-                P = current_instruction[24];
-                U = current_instruction[23];
-                B = current_instruction[22]; // It is possible that the B option is useless because we can always retrieve words in 1 cycle from BRAM 
-                W = current_instruction[21];
-                L = current_instruction[20];
+                P = conditioned_instruction[24];
+                U = conditioned_instruction[23];
+                B = conditioned_instruction[22]; // It is possible that the B option is useless because we can always retrieve words in 1 cycle from BRAM 
+                W = conditioned_instruction[21];
+                L = conditioned_instruction[20];
             
                 if (L == 0) // STORE (ARM ARM pdf p343)
                 begin
                     if (P == 1)
                     begin
-                        if (W == 0) // offset addressing (P == 1 && W == 0)
-                        begin
-                            // B bus tri-state
-                            de_reg_read_B_en      = DISABLE;
-                            de_data_prov_b_bus_en = DISABLE;
-                            de_imm_output_en      = ENABLE;
-                            
-                            de_reg_write_en       = DISABLE;
-                            de_reg_lr_write_en    = DISABLE;
-                            de_reg_cpsr_write_en  = DISABLE;
-                            
-                            de_data_out_en        = ENABLE;
-                            de_mem_write_en       = ENABLE;
+                        // B bus tri-state
+                        de_reg_read_B_en      = DISABLE;
+                        de_data_prov_b_bus_en = DISABLE;
+                        de_imm_output_en      = ENABLE;  // address offset provided from an immediate on B bus
                         
-                            de_reg_read_A_sel = current_instruction[19:16];
-                            de_reg_read_B_sel = current_instruction[15:12]; 
-                            reg_read_C_sel    = R0;
-                            de_reg_write_sel  = R0; 
-                            
-                            de_barrel_op_sel  = BARREL_OP_LSL;
-                            de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
-                            
-                            de_barrel_shift_val = 32'b0;
-                            
-                            de_immediate_value  = current_instruction[11:0]; 
-                            
-                            de_reg_pc_write_en = DISABLE;
-                            de_addreg_update   = ENABLE;
-                            de_addreg_sel      = ADDRESS_SELECT_ALU;
-                        end
-                        else        // pre-indexed addressing (P == 1 && W == 1)
-                        begin
-                        end
+                        de_reg_write_en       = W == 0 ? DISABLE : ENABLE;  // update base register (pre-indexed) if W == 1
+                        de_reg_lr_write_en    = DISABLE;
+                        de_reg_cpsr_write_en  = DISABLE;
+                        
+                        de_data_out_reg_write_en = DISABLE;
+                        de_data_out_sel          = DATA_OUT_PASS_THROUGH;
+                        de_mem_write_en       = ENABLE;
+
+                        de_reg_read_A_sel = conditioned_instruction[19:16];
+                        de_reg_read_B_sel = conditioned_instruction[15:12]; 
+                        reg_read_C_sel    = R0;
+                        de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn 
+                        
+                        de_barrel_op_sel  = BARREL_OP_LSL;
+                        de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
+                        
+                        de_barrel_shift_val = 32'b0;
+                        
+                        de_immediate_value  = conditioned_instruction[11:0]; 
+                        
+                        // update address register with the calculated address from the ALU
+                        de_reg_pc_write_en = DISABLE;
+                        de_addreg_update   = ENABLE;
+                        de_addreg_sel      = ADDRESS_SELECT_ALU;
                     end
                     else            // post-indexed addressing (P == 0)
                     begin           // unpriviliged memory access is not implemented (W bit doesn't matter)
+                        // B bus tri-state
+                        de_reg_read_B_en      = ENABLE;  // save B in write register
+                        de_data_prov_b_bus_en = DISABLE;
+                        de_imm_output_en      = DISABLE;  // address offset provided from an immediate on B bus
                         
+                        de_reg_write_en       = DISABLE;  // no update on first cycle (post-indexed)
+                        de_reg_lr_write_en    = DISABLE;
+                        de_reg_cpsr_write_en  = DISABLE;
+                        
+                        de_data_out_reg_write_en = ENABLE;
+                        de_data_out_sel          = DATA_OUT_LATCHED;
+                        de_mem_write_en          = ENABLE;
+
+                        de_reg_read_A_sel = conditioned_instruction[19:16];
+                        de_reg_read_B_sel = conditioned_instruction[15:12]; 
+                        reg_read_C_sel    = R0;
+                        de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn 
+                        
+                        de_barrel_op_sel  = BARREL_OP_LSL;
+                        de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
+                        
+                        de_barrel_shift_val = 32'hFFFF_FFFF; // making the result of the barrel shifter == 0,
+                                                             // so the first cycle of the Store operation doesn't contribute
+                                                             // to the address. Rather on the B-bus the data is available. 
+                        
+                        de_immediate_value  = conditioned_instruction[11:0]; 
+                        
+                        // update address register with the calculated address from the ALU
+                        de_reg_pc_write_en = DISABLE;
+                        de_addreg_update   = ENABLE;
+                        de_addreg_sel      = ADDRESS_SELECT_ALU;
                     end
                 end
                 else // L == 1 -> LOAD (ARM ARM pdf p193)
@@ -325,7 +360,8 @@ module instruction_decoder(
                     de_reg_lr_write_en    = DISABLE;
                     de_reg_cpsr_write_en  = DISABLE;
                     
-                    de_data_out_en        = DISABLE;
+                    de_data_out_reg_write_en = DISABLE;
+                    de_data_out_sel          = DATA_OUT_HIGH_IMP;
                     de_mem_write_en       = DISABLE;
                 
                     de_reg_read_A_sel = R0;
@@ -357,7 +393,8 @@ module instruction_decoder(
                 de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = DISABLE;
                 
-                de_data_out_en        = DISABLE;
+                 de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 de_mem_write_en       = DISABLE;
             
                 de_reg_read_A_sel = R0;
@@ -384,7 +421,8 @@ module instruction_decoder(
                 de_data_prov_b_bus_en = DISABLE;
                 de_imm_output_en      = DISABLE;
                 
-                de_data_out_en        = DISABLE;
+                de_data_out_reg_write_en = DISABLE;
+                de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 de_mem_write_en       = DISABLE;
             
                 de_reg_read_A_sel = R0; // Rn

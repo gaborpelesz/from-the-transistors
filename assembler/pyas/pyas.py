@@ -46,8 +46,11 @@ def main(args):
 
     print([hex(b) for b in binary])
     
+    print("Verilog generated source:")
+    need_space = lambda x : ' ' if x < 10 else ''
     for i, b in enumerate(binary):
-        print(f"0x{i:0>4x}: {b:0>32b}") # watch out for the 0>32b pattern when saving the bits as well
+        byte_index = (i+1)*4
+        print(f"{'{'}{need_space(byte_index-1)}mem[{byte_index-1}], {need_space(byte_index-2)}mem[{byte_index-2}], {need_space(byte_index-3)}mem[{byte_index-3}], {need_space(byte_index-4)}mem[{byte_index-4}]{'}'} <= 32'b{b:0>32b}; // {preprocessed_assembly[i][1]}")
 
 if __name__ == "__main__":
     main(sys.argv)

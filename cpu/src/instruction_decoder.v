@@ -4,7 +4,8 @@ module instruction_decoder(
     input  wire [31:0] fd_instruction,
            wire [31:0] reg_read_C_bus,
            wire  [3:0] in_cpsr,
-    output reg   [3:0] de_reg_read_A_sel,
+    output reg         de_instruction_ldr_str,
+           reg   [3:0] de_reg_read_A_sel,
            reg   [3:0] de_reg_read_B_sel,
            reg   [3:0] reg_read_C_sel,
            reg   [3:0] de_reg_write_sel,
@@ -98,6 +99,8 @@ module instruction_decoder(
         
         if (decoded_instruction_type == DECODE_DATA_PROC_IMM_SHIFT)
             begin
+                de_instruction_ldr_str = DISABLE;
+                
                 // B bus tri-state
                 de_reg_read_B_en      = ENABLE;
                 de_data_prov_b_bus_en = DISABLE;
@@ -142,6 +145,8 @@ module instruction_decoder(
             end
         else if (decoded_instruction_type == DECODE_DATA_PROC_REG_SHIFT)
             begin
+                de_instruction_ldr_str = DISABLE;
+            
                 // B bus tri-state
                 de_reg_read_B_en      = ENABLE;
                 de_data_prov_b_bus_en = DISABLE;
@@ -187,6 +192,8 @@ module instruction_decoder(
             
         else if (decoded_instruction_type == DECODE_DATA_PROC_IMM_1 || decoded_instruction_type == DECODE_DATA_PROC_IMM_2)
             begin
+                de_instruction_ldr_str = DISABLE;
+            
                 // B bus tri-state
                 de_reg_read_B_en      = DISABLE;
                 de_data_prov_b_bus_en = DISABLE;
@@ -232,6 +239,8 @@ module instruction_decoder(
             
         else if (decoded_instruction_type == DECODE_BRANCH_AND_BL_1 || decoded_instruction_type == DECODE_BRANCH_AND_BL_2)
             begin
+                de_instruction_ldr_str = DISABLE;
+            
                 // Basically the following operation: ADD PC, PC, (SignExtend_30(signed_immed_24) << 2)
                 //  if L == 1 then, LR = address of the instruction after the branch instruction, where LR == R14
                 //  Thus L is to perform a subroutine call. Do a MOV PC, R14 in the end of the subroutine to return.
@@ -274,6 +283,7 @@ module instruction_decoder(
             
         else if (decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_1 || decoded_instruction_type == DECODE_LOAD_STORE_IMM_OFF_2 || decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
             begin
+                // ARM ARM pdf: LDR-p193, STR-p343, addressing modes-p458
                 P = conditioned_instruction[24];
                 U = conditioned_instruction[23];
                 B = conditioned_instruction[22]; // It is possible that the B option is useless because we can always retrieve words in 1 cycle from BRAM 
@@ -282,66 +292,72 @@ module instruction_decoder(
             
                 de_reg_lr_write_en    = DISABLE;
                 de_reg_cpsr_write_en  = DISABLE;
-                
-                de_reg_read_A_sel = conditioned_instruction[19:16];
-                de_reg_read_B_sel = conditioned_instruction[15:12];
-                de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn
-                                        
-                // update address register with the calculated address from the ALU
-                de_reg_pc_write_en = DISABLE;
-                de_addreg_update   = ENABLE;
-                de_addreg_sel      = ADDRESS_SELECT_ALU;
-                
-                de_barrel_op_sel  = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[6:5] : BARREL_OP_LSL;
-                de_alu_op_sel     = U == 0 ? ALU_OP_SUB : ALU_OP_ADD;
-                
-                if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
-                begin
-                    reg_read_C_sel = conditioned_instruction[3:0];
-                    de_immediate_value = reg_read_C_bus;
-                end
-                else
-                    de_immediate_value = conditioned_instruction[11:0];
             
-                if (L == 0) // STORE (ARM ARM pdf p343)
+                /* ADDRESS CALCULATION, COMMON AMONG STR AND LDR */
                 begin
-                    de_mem_write_en = ENABLE;
-                
-                    if (P == 1)
+                    de_reg_read_A_sel = conditioned_instruction[19:16];
+                    de_reg_read_B_sel = conditioned_instruction[15:12]; // Rd
+                    de_reg_write_sel  = conditioned_instruction[19:16]; // save the calculated address to the base register Rn
+                    
+                    // update address register with the calculated address from the ALU
+                    de_reg_pc_write_en = DISABLE;
+                    de_addreg_update   = ENABLE;
+                    de_addreg_sel      = ADDRESS_SELECT_ALU;
+                    
+                    de_barrel_op_sel  = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[6:5] : BARREL_OP_LSL;
+                    de_alu_op_sel     = U == 0 ? ALU_OP_RSB : ALU_OP_ADD; // RSB because A bus contains the address and the B bus the offset
+                    
+                    // at post-indexed, barrel shifter will make the op2 from B bus equal to 0 when entering the ALU
+                    de_barrel_shift_val = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[11:7] : 32'b0;
+                    
+                    if (decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF)
                     begin
-                        // B bus tri-state
-                        de_reg_read_B_en      = DISABLE;
-                        de_data_prov_b_bus_en = DISABLE;
-                        de_imm_output_en      = ENABLE;  // address offset provided from an immediate on B bus
-                        
-                        de_reg_write_en       = W == 0 ? DISABLE : ENABLE;  // update base register (pre-indexed) if W == 1
-                        
-                        de_data_out_reg_write_en = DISABLE;
-                        de_data_out_sel          = DATA_OUT_PASS_THROUGH;
-                        
-                        de_barrel_shift_val = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[11:7] : 32'b0;
+                        reg_read_C_sel = conditioned_instruction[3:0];
+                        de_immediate_value = reg_read_C_bus;
                     end
-                    else            // post-indexed addressing (P == 0)
-                    begin           // unpriviliged memory access is not implemented (W bit doesn't matter)
-                        // B bus tri-state
-                        de_reg_read_B_en      = ENABLE;  // save B in write register
-                        de_data_prov_b_bus_en = DISABLE;
-                        de_imm_output_en      = DISABLE;  // address offset provided from an immediate on B bus
-                        
-                        de_reg_write_en       = DISABLE;  // no update on first cycle, logic control will update this on second cycle (post-indexed)
-                        
-                        de_data_out_reg_write_en = ENABLE;
-                        de_data_out_sel          = DATA_OUT_LATCHED;
-                        
-                        de_barrel_shift_val = decoded_instruction_type == DECODE_LOAD_STORE_REG_OFF ? conditioned_instruction[11:7] : 32'b0; // making the result of the barrel shifter == 0,
-                                                                                                                                                     // so the first cycle of the Store operation doesn't contribute
-                                                                                                                                                     // to the address. Rather on the B-bus the data is available. 
-                    end
+                    else
+                        de_immediate_value = conditioned_instruction[11:0];
                 end
 
-                else // L == 1 -> LOAD (ARM ARM pdf p193)
+                de_instruction_ldr_str = ENABLE;
+                de_mem_write_en        = L == 0 ? ENABLE : DISABLE;
+
+                if (P == 1)
                 begin
-                    // .....
+                    // B bus tri-state
+                    de_reg_read_B_en      = DISABLE;
+                    de_data_prov_b_bus_en = DISABLE;
+                    de_imm_output_en      = ENABLE;  // address offset provided from an immediate on B bus
+                    
+                    de_reg_write_en       = W == 0 ? DISABLE : ENABLE;  // update base register (pre-indexed) if W == 1
+                end
+                else            // post-indexed addressing (P == 0)
+                begin           // unpriviliged memory access is not implemented (W bit doesn't matter)
+                    // B bus tri-state
+                    de_reg_read_B_en      = ENABLE;  // save B in write register
+                    de_data_prov_b_bus_en = DISABLE;
+                    de_imm_output_en      = DISABLE;  // address offset provided from an immediate on B bus
+                    
+                    de_reg_write_en       = DISABLE;  // no update on first cycle, logic control will update this on second cycle (post-indexed)
+                end
+                
+                if (L == 0)
+                begin
+                    if (P == 1)
+                    begin
+                        de_data_out_reg_write_en = DISABLE;
+                        de_data_out_sel          = DATA_OUT_PASS_THROUGH;
+                    end
+                    else
+                    begin
+                        de_data_out_reg_write_en = ENABLE;
+                        de_data_out_sel          = DATA_OUT_LATCHED;
+                    end
+                end
+                else
+                begin
+                    de_data_out_reg_write_en = DISABLE;
+                    de_data_out_sel          = DATA_OUT_HIGH_IMP;
                 end
             end
             

@@ -86,8 +86,9 @@ module logic_control(
                PIPELINE_FETCH         = 3'b010,
                PIPELINE_DECODE        = 3'b011,
                PIPELINE_EXECUTE       = 3'b100,
-               PIPELINE_EXECUTE_STORE = 3'b101;
-               //PIPELINE_STALL   = 3'b101;
+               PIPELINE_EXECUTE_STORE = 3'b101,
+               PIPELINE_EXECUTE_LOAD  = 3'b110;
+               //PIPELINE_STALL   = 3'b111;
     
     // fetch-decode pipeline registers
     reg [31:0] fd_instruction = 32'b11100001101000000000000000000000; // initialize to NOP (MOV R0, R0)
@@ -96,6 +97,7 @@ module logic_control(
     assign decoded_instruction_type = {fd_instruction[27:25], fd_instruction[4]}; // ARM ARM p110   
     
     // decode-execute pipeline registers
+    wire         de_instruction_ldr_str;
     wire   [3:0] de_reg_read_A_sel;
     wire   [3:0] de_reg_read_B_sel;
     wire   [3:0] de_reg_write_sel;
@@ -132,6 +134,7 @@ module logic_control(
     instruction_decoder instruction_decoder_inst (fd_instruction,
                                                   reg_read_C_bus,
                                                   in_cpsr,
+                                                  de_instruction_ldr_str,
                                                   de_reg_read_A_sel,
                                                   de_reg_read_B_sel,
                                                   reg_read_C_sel,
@@ -174,8 +177,9 @@ module logic_control(
             PIPELINE_RESET_1       : pipeline_next_state = PIPELINE_RESET_2;
             PIPELINE_RESET_2       : pipeline_next_state = PIPELINE_FETCH;
             PIPELINE_FETCH         : pipeline_next_state = PIPELINE_DECODE;
-            PIPELINE_DECODE        : pipeline_next_state = de_mem_write_en ? PIPELINE_EXECUTE_STORE : PIPELINE_EXECUTE;
-            PIPELINE_EXECUTE_STORE : pipeline_next_state = PIPELINE_EXECUTE;
+            PIPELINE_DECODE        : pipeline_next_state = de_instruction_ldr_str == 0 ? PIPELINE_EXECUTE : PIPELINE_EXECUTE_STORE ;
+            PIPELINE_EXECUTE_STORE : pipeline_next_state = ex_mem_write_en == 0 ? PIPELINE_EXECUTE_LOAD : PIPELINE_EXECUTE;
+            PIPELINE_EXECUTE_LOAD  : pipeline_next_state = PIPELINE_EXECUTE;
             PIPELINE_EXECUTE       : pipeline_next_state = PIPELINE_FETCH; // either de_data_prov_b_bus_en or mem_write_en or data_out_en is on, go to execute_2 instead
             default                : pipeline_next_state = PIPELINE_RESET_1;
         endcase
@@ -196,7 +200,7 @@ module logic_control(
                 reg_read_B_en         <= ENABLE;
                 reg_write_sel         <= R0;
                 reg_write_en          <= DISABLE;
-                reg_pc_write_en       <= ENABLE;
+                reg_pc_write_en       <= DISABLE;
                 reg_lr_write_en       <= DISABLE;
                 reg_cpsr_write_en     <= DISABLE;
                 address_reg_sel       <= ADDRESS_SELECT_PC;
@@ -285,12 +289,21 @@ module logic_control(
             begin
                 data_out_reg_write_en <= DISABLE;
                 
-                mem_write_en <= ex_mem_write_en; // should always be ENABLED
+                mem_write_en <= ex_mem_write_en; // should always be ENABLED when STR and DISABLED when LDR
                 data_out_sel <= ex_data_out_sel;
                
-                address_reg_sel <= ADDRESS_SELECT_PC;
-                update_address  <= ENABLE;
-                reg_pc_write_en <= DISABLE;
+                if (ex_mem_write_en == 0) // OP LDR, don't update the address register yet
+                begin
+                    address_reg_sel <= ADDRESS_SELECT_PC;
+                    update_address  <= DISABLE;
+                    reg_pc_write_en <= DISABLE;
+                end
+                else
+                begin
+                    address_reg_sel <= ADDRESS_SELECT_PC;
+                    update_address  <= ENABLE;
+                    reg_pc_write_en <= DISABLE;
+                end
                
                 // post-indexed second cycle Rn update
                 if (data_out_reg_write_en == ENABLE && ex_data_out_sel == DATA_OUT_LATCHED)
@@ -314,6 +327,25 @@ module logic_control(
                     imm_output_en <= DISABLE;
                     data_prov_b_bus_en <= DISABLE;
                 end
+            end
+            
+        else if (pipeline_current_state == PIPELINE_EXECUTE_LOAD)
+            begin
+                update_address <= ENABLE; // update address register from PC
+                reg_write_en   <= ENABLE; // write mem data to Rd
+                
+                reg_read_B_en      <= DISABLE;
+                imm_output_en      <= DISABLE;
+                data_prov_b_bus_en <= ENABLE;
+                
+                reg_write_sel      <= reg_read_B_sel; // pre/post-indexed addressing was writing Rn on second cycle
+                                                      // now we get Rd and set it as the register to write
+
+                // barrel shifter NOP   
+                barrel_shift_val   <= 32'b0;
+                barrel_op_sel      <= BARREL_OP_LSL;
+                
+                alu_op_sel <= ALU_OP_MOV;
             end
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)

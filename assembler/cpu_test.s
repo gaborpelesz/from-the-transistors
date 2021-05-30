@@ -1,12 +1,7 @@
-     MOV R0, #20           ; R0 = 20
-     
-     ; constructing address in R13: 0x0038_0400
-     MOV R13, #56, 16
-     ORR R13, R13, #4, 24
+MOV R0, #56, 16 ; constructing UART TX address: 0x0038_0000
+MOV R1, #72     ; creating ASCII letter 'H' (H == 0x48)
+STR R1, [R0]    ; sending an UART byte through MMIO
 
-     STR R0, [R13], +R0, LSL #8 ; address: 0x0038_0404
-
-     LDR R1, [R13, -R0, LSL #8]! ; address: 0x0038_0404
-
+; NOP the rest
 nop: MOV R0, R0     ; else NOP => No OPeration
      B nop          ; NOP forever

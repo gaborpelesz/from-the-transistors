@@ -1,27 +1,31 @@
 `timescale 1ns / 1ps
 
 module memory_mapper(
+    // input from CPU
     input  wire        in_mem_reset,
-    
            wire [31:0] in_address,
            wire [31:0] in_data,
            wire        in_write_en,
+    
+    // output to CPU
+    output  reg  [31:0] out_read_data, // wire back to cpu
            
-           wire [31:0] in_bootrom_read_data,
+    // input from mapped memories
+    input  wire [31:0] in_bootrom_read_data,
            wire [31:0] in_nvm_read_data,
            wire [31:0] in_mmio_read_data,
            wire [31:0] in_bram_read_data,
-           
-   output  reg  [31:0] out_read_data, // wire back to cpu
+          
    
-           reg  [31:0] out_bootrom_address, // rom is not writeable, hence no write outputs for this
+    // output to mapped memories
+    output reg  [31:0] out_bootrom_address, // rom is not writeable, hence no write outputs for this
 
            reg  [31:0] out_nvm_address,
            reg  [31:0] out_nvm_write_data,
            reg         out_nvm_write_en,
            
            reg         out_mmio_reset,
-           reg  [31:0] out_mmio_address,
+           reg  [11:0] out_mmio_address,
            reg  [31:0] out_mmio_write_data,
            reg         out_mmio_write_en,
            
@@ -45,7 +49,7 @@ module memory_mapper(
             out_nvm_write_data  = 32'b0;
             out_nvm_write_en    = DISABLE;
 
-            out_mmio_address    = 32'b0;
+            out_mmio_address    = 12'b0;
             out_mmio_write_data = 32'b0;
             out_mmio_write_en   = DISABLE;
             
@@ -66,7 +70,7 @@ module memory_mapper(
             out_nvm_write_data  = 32'b0;
             out_nvm_write_en    =  1'b0;
             
-            out_mmio_address    = 32'b0;
+            out_mmio_address    = 12'b0;
             out_mmio_write_data = 32'b0;
             out_mmio_write_en   =  1'b0;
             
@@ -80,24 +84,22 @@ module memory_mapper(
         // Mapped I/O
         else if (in_address >= 32'h0038_0000 && in_address < 32'h0038_0400)
         begin
-            // what I/O ports do we have? Map them here...
-            
-            // currently unavailable...
-            out_bootrom_address  = 32'b0;
+            out_bootrom_address = 32'b0;
             
             out_nvm_address     = 32'b0;
             out_nvm_write_data  = 32'b0;
             out_nvm_write_en    =  1'b0;
             
-            out_mmio_address    = 32'b0;
-            out_mmio_write_data = 32'b0;
-            out_mmio_write_en   =  1'b0;
+            // delegate handling to mmio_mapper
+            out_mmio_address    = in_address[11:0];
+            out_mmio_write_data = in_data;
+            out_mmio_write_en   = in_write_en;
             
             out_bram_address    = 32'b0;
             out_bram_write_data = 32'b0;
             out_bram_write_en   =  1'b0;
             
-            out_read_data       = 32'bx;
+            out_read_data       = in_mmio_read_data;
         end
         
         // BRAM 0x0038_0400 <--> 0x0039_93FF => 100KB
@@ -109,7 +111,7 @@ module memory_mapper(
             out_nvm_write_data  = 32'b0;
             out_nvm_write_en    =  1'b0;
             
-            out_mmio_address    = 32'b0;
+            out_mmio_address    = 12'b0;
             out_mmio_write_data = 32'b0;
             out_mmio_write_en   =  1'b0;
             
@@ -129,7 +131,7 @@ module memory_mapper(
             out_nvm_write_data  = 32'b0;
             out_nvm_write_en    =  1'b0;
             
-            out_mmio_address    = 32'b0;
+            out_mmio_address    = 12'b0;
             out_mmio_write_data = 32'b0;
             out_mmio_write_en   =  1'b0;
             

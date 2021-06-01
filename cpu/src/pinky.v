@@ -10,23 +10,22 @@ module pinky(
            wire        TxD
     );
     
-    wire master_clk = LED[0] == 0 ? clk : btn_right; // enable stepping with right button when switch 0 is turned on
-    
     wire        cpu_control_reset;
     wire [31:0] cpu_address_bus;
     wire        cpu_mem_write_en;
     wire [31:0] cpu_mem_write_data;
     wire [31:0] cpu_mem_read_data;
     wire [31:0] cpu_debug_output;
+    wire        cpu_stretch_mclk;
     
     wire        uart_send_data_en;
     wire [31:0] uart_in_data;
     wire        uart_send_word;
+    wire        uart_data_is_read;
     wire  [7:0] uart_out_data;
     wire  [2:0] uart_status; // { rx_data_valid, tx_active, tx_done }
     
     assign LED = cpu_debug_output[15:0];
-    
     
     /* MEMORY MAPPER */
     wire [31:0] bootrom_address;
@@ -66,6 +65,7 @@ module pinky(
                                   .in_uart_status(uart_status),
                                   .out_uart_send_en(uart_send_data_en),
                                   .out_uart_data(uart_in_data),
+                                  .out_uart_data_is_read(uart_data_is_read),
                                   .in_reset(mmio_reset),
                                   .in_address(mmio_address),
                                   .in_write_data(mmio_write_data),
@@ -87,26 +87,36 @@ module pinky(
                                               .write_data(bram_write_data),
                                               .read_data(bram_read_data));
     
+    /* MEMORY CLOCK CYCLE GENERATOR --> if address has changed, will stall CLK until data appears on mem bus */
+    wire mclk;
+    mclock_gen mclock_gen_inst (.clk(clk),
+                                .reset(btn_center),
+                                .address(bram_address),
+                                .stretch_mclk(cpu_stretch_mclk),
+                                .mclk(mclk));
+    
     /* CPU INIT */
-    cpu cpu_inst(.clk(clk),
+    cpu cpu_inst(.clk(mclk),
                  .reset(btn_center),
                  .in_mem_read_data(cpu_mem_read_data),
                  .out_control_reset(cpu_control_reset),
                  .out_address_bus(cpu_address_bus),
                  .out_mem_write_en(cpu_mem_write_en),
                  .out_mem_write_data(cpu_mem_write_data),
-                 .out_reg_debug_data(cpu_debug_output));
+                 .out_reg_debug_data(cpu_debug_output),
+                 .stretch_mclk(cpu_stretch_mclk));
                  
 /* ---- INPUT/OUTPUT ---- */
     
     /* UART */
-    uart_controller (.clk(clk),
-                     .in_serial(RxD),
-                     .out_serial(TxD),
-                     .in_send_data_en(uart_send_data_en),
-                     .in_data(uart_in_data),
-                     .in_send_word(1'b0), // to be implemented
-                     .out_data(uart_out_data),
-                     .out_uart_status(uart_status));
+    uart_controller uart_controller_inst (.clk(clk),
+                                          .in_serial(RxD),
+                                          .out_serial(TxD),
+                                          .in_send_data_en(uart_send_data_en),
+                                          .in_data(uart_in_data),
+                                          .in_send_word(1'b0), // to be implemented
+                                          .in_data_is_read(uart_data_is_read),
+                                          .out_data(uart_out_data),
+                                          .out_uart_status(uart_status));
     
 endmodule

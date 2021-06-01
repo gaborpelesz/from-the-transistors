@@ -9,7 +9,8 @@ module cpu(
            wire [31:0] out_address_bus,
            wire        out_mem_write_en,
            wire [31:0] out_mem_write_data,
-           wire [31:0] out_reg_debug_data
+           wire [31:0] out_reg_debug_data,
+           wire        stretch_mclk
     );
     
     /* BUSES */
@@ -77,7 +78,8 @@ module cpu(
                                       .data_out_sel(c_data_out_sel),
                                       .data_out_reg_write_en(c_data_out_reg_write_en),
                                       .control_reset(c_reset),
-                                      .out_immediate_value(B_bus));
+                                      .out_immediate_value(B_bus),
+                                      .stretch_mclk(stretch_mclk));
     
     /* REGISTER BANK MODULE INIT */
     reg_bank reg_bank_inst (.clk(clk),

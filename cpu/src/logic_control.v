@@ -26,7 +26,8 @@ module logic_control(
            reg   [1:0] data_out_sel,
            reg         data_out_reg_write_en,
            reg         control_reset,
-           wire [31:0] out_immediate_value
+           wire [31:0] out_immediate_value,
+           reg         stretch_mclk
     );
     
     localparam DECODE_DATA_PROC_IMM_SHIFT  = 4'b0000,
@@ -46,7 +47,8 @@ module logic_control(
     localparam R0  = 4'd00, R1  = 4'd01, R2  = 4'd02, R3  = 4'd03,
                R4  = 4'd04, R5  = 4'd05, R6  = 4'd06, R7  = 4'd07,
                R8  = 4'd08, R9  = 4'd09, R10 = 4'd10, R11 = 4'd11,
-               R12 = 4'd12, R13 = 4'd13, R14 = 4'd14, R15 = 4'd15;
+               R12 = 4'd12, R13 = 4'd13, R14 = 4'd14, R15 = 4'd15,
+               LR  = 4'd14, PC  = 4'd15;
                
     localparam BARREL_OP_LSL = 2'b00, // logical shift left
                BARREL_OP_LSR = 2'b01, // logical shift right
@@ -235,6 +237,7 @@ module logic_control(
                 update_address     <= DISABLE;       // don't do this when pipelining
                 reg_pc_write_en    <= DISABLE;       // don't do this when pipelining
                 reg_lr_write_en    <= DISABLE;
+                stretch_mclk       <= DISABLE;
                 // ------------------------------------------------------------------------
             
                 // fetch instruction
@@ -350,6 +353,9 @@ module logic_control(
             
         else if (pipeline_current_state == PIPELINE_EXECUTE)
             begin
+                stretch_mclk <= update_address; // at any state when we updated the address in the execute stage, we have to stretch if we used BRAM
+                                                // e.g., possible stretch when we wrote to the PC in the previous stage, or we do B, BL op
+            
                 address_reg_sel <= ADDRESS_SELECT_INC;
                 update_address  <= ENABLE;
                 reg_pc_write_en <= ENABLE;

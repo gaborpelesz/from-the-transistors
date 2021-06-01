@@ -125,8 +125,6 @@ def load_store_instruction_encode(op, cond, operands):
     else:
         raise Exception(f"Unknown operands for '{op}' operation in instruction: {op}{cond} {', '.join(operands)}")
 
-    print([addressing_operands])
-    print(P)
     return cond_code << 28 | 0b1 << 26 | \
            I << 25 | P << 24 | U << 23 | \
            B << 22 | W << 21 | L << 20 | \

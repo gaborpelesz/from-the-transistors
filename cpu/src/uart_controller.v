@@ -10,17 +10,19 @@ module uart_controller(
     // MMIO Mapper interface
     input  wire        in_send_data_en,
            wire [31:0] in_data,
-           wire        in_send_word, // whether to send just one byte, or a word
+           wire        in_send_word,    // whether to send just one byte, or a word
+           wire        in_data_is_read, // signals the UART that the new data has been read, this will set the rx_data_valid to 0
     output wire  [7:0] out_data,
            wire  [2:0] out_uart_status // { rx_data_valid, tx_active, tx_done }
     );
 
+    reg  uart_rx_new_data = 0;
     wire rx_data_valid;
     // reg  rx_send_data = 1'b0; // for words
     wire tx_is_active;
     wire tx_done;
 
-    assign out_uart_status = { rx_data_valid, tx_is_active, tx_done };
+    assign out_uart_status = { uart_rx_new_data, tx_is_active, tx_done };
 
     uart_tx  #(.BaudRate(115200), .ClockSpeed_MHz(100)) 
         uart_tx_inst (.clk(clk),
@@ -30,11 +32,24 @@ module uart_controller(
                       .out_serial(out_serial),
                       .out_done(tx_done));
 
-    uart_rx  #(.BaudRate(115200), .ClockSpeed_MHz(100)) 
+    uart_rx  //#(.BaudRate(115200), .ClockSpeed_MHz(100)) 
         uart_rx_inst (.clk(clk),
                       .in_serial(in_serial),
                       .out_data(out_data),
                       .out_data_valid(rx_data_valid));
+
+    /* If new data is received, signal new data for 100 clocks */
+    always @ (posedge clk)
+    begin
+        if (in_data_is_read)
+        begin
+            uart_rx_new_data <= 0;
+        end
+        else if (rx_data_valid)
+        begin
+            uart_rx_new_data <= 1;
+        end
+    end
 
 /* Later if we want to transmit whole words instead of bytes*/
 /*

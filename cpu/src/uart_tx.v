@@ -22,10 +22,10 @@ module uart_tx #(
                STATE_FINISH_TRANSMIT = 3'd4,
                STATE_INITIALIZE      = 3'd5;
     
-    reg [2:0] tx_state = STATE_INITIALIZE;
-    reg [7:0] bytes_to_send = 8'd0;
-    reg [9:0] baud_counter = 10'd0; // would be 19 bits for: baud rate = 300
-    reg [4:0] transmitted_bits_counter = 5'd0;
+    reg                        [2:0] tx_state                 = STATE_INITIALIZE;
+    reg                        [7:0] bytes_to_send            = 8'd0;
+    reg [$clog2(BAUD_COUNTER_MAX):0] baud_counter             = 0;
+    reg                        [4:0] transmitted_bits_counter = 5'd0;
     
     always @ (posedge clk)
     begin
@@ -40,7 +40,7 @@ module uart_tx #(
                 out_done      <= 0;
                 
                 bytes_to_send            <= in_data;
-                baud_counter             <= 10'd0;
+                baud_counter             <= 0;
                 transmitted_bits_counter <= 5'd0;
                 
                 tx_state <= STATE_START_TRANSMIT;
@@ -69,7 +69,7 @@ module uart_tx #(
             end
             else
             begin
-                baud_counter <= 8'd0;
+                baud_counter <= 0;
                 tx_state <= STATE_TRANSMIT_BYTES;
             end
         end
@@ -90,7 +90,7 @@ module uart_tx #(
             // counted
             else
             begin
-                baud_counter <= 8'd0; // reset counter
+                baud_counter <= 0; // reset counter
                 
                 if (transmitted_bits_counter < 5'd7)
                 begin
@@ -118,7 +118,7 @@ module uart_tx #(
             end
             else
             begin
-                baud_counter <= 8'd0;
+                baud_counter <= 0;
                 out_done <= 1;
                 tx_state <= STATE_FINISH_TRANSMIT;
             end

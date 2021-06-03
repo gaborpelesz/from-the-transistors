@@ -1,4 +1,4 @@
-from instruction_formats.utils import get_condition_code 
+from .utils import get_condition_code 
 
 def form_branching_immediate24(instruction_address, immediate_operands):
     assert immediate_operands[0].startswith("#") and len(immediate_operands) == 1

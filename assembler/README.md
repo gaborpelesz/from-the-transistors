@@ -8,13 +8,28 @@ This README is ahead of a major revision.
 
 This assembler has the only purpose to directly translate the instruction for my ARM7-based CPU. The instruction set is more probably just a subset of the full ISA. It only supports the most basic instruction that are required by any of the software to run that build on top of this project.
 
+## Installing
+
+install build prerequisites:
+```
+pip3 install -U build setuptools
+```
+
+install *pyas*:
+```
+cd assembler
+python3 -m build
+pip3 install dist/pyas-<pyas_version>-py3-none-any.whl
+```
+
 ## Running
 
-`pyas <assembly>.s -o <binary_output_name>`
+Simple translation:  
+`pyas <asm.s>` => out binary: **asm.s.o**  
+`pyas <asm.s> -o <out_name>` => out binary: **out_name**
 
-Generate text file with character coded hexadecimals
-
-((`pyas <assembly>.s -s <binary_output_name>`)) not implemented yet
+Generate verilog source code (essential when altering bootrom):  
+`pyas <asm.s> -v` (won't output any binary)
 
 ## Instruction set
 

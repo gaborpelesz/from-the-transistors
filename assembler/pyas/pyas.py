@@ -2,8 +2,8 @@ import os
 import sys
 import argparse
 
-from preprocess import preprocess_assembly
-from encoder import instruction_encoder
+from .preprocess import preprocess_assembly
+from .encoder import instruction_encoder
 
 def load_assembly(input_path):
     with open(input_path, "r") as f:

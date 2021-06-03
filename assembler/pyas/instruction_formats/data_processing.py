@@ -1,4 +1,4 @@
-from instruction_formats.utils import get_condition_code, \
+from .utils import get_condition_code, \
                                       reg_to_int, \
                                       register_shift, \
                                       shift_opcode_map, \

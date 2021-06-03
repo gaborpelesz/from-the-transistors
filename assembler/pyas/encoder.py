@@ -1,10 +1,8 @@
-from instruction_formats.data_processing import data_processing_instruction_encode,\
-                                                data_processing_opcode_map
-
-from instruction_formats.branching import branching_instruction_encode
-
-from instruction_formats.load_store import load_store_instruction_encode,\
-                                           load_store_opcode_map
+from .instruction_formats import data_processing_instruction_encode,\
+                                 branching_instruction_encode,\
+                                 load_store_instruction_encode,\
+                                 data_processing_opcode_map,\
+                                 load_store_opcode_map
 
 supported_operations = [
     *data_processing_opcode_map.keys(),

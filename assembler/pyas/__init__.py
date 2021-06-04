@@ -1,5 +1,6 @@
 import sys
-from .pyas import main
+from .pyas import _main
+from .pyas import assemble
 
 def entry():
-    main(sys.argv)
+    _main(sys.argv)

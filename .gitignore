@@ -1,8 +1,11 @@
+# python intermediates
 __pycache__
 *.pyc
-playground
 
 # assembler, python package files
 build
 dist
 pyas.egg-info
+
+# binary object files
+*.o

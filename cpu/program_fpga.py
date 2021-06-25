@@ -37,7 +37,7 @@ def main(args):
     with serial.Serial(args.port, args.baud) as ser:
         for byte in bytes_to_send:
             ser.write(bytes([byte]))
-            time.sleep(0.0001) # without sleep sending would collapse because Rx on FPGA can't handle it
+            time.sleep(0.0002) # without sleep sending would collapse because Rx on FPGA can't handle it
 
     print('FPGA successfully programmed!')
 

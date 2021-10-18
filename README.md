@@ -1,2 +1,3 @@
 # from-the-transistors
-Project inspired by George Hotz
+
+Building a computer from scratch on an FPGA.

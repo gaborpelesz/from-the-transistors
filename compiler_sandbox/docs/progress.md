@@ -1,5 +1,11 @@
-COMPILER ROADMAP
+# Compiler Journal
 
+## Resources / References
+[Engineering a Compiler](http://www.r-5.org/files/books/computers/compilers/writing/Keith_Cooper_Linda_Torczon-Engineering_a_Compiler-EN.pdf), by Keith Copper, Linda Torczon  
+[The elements of computing systems: building a modern computer from first principles](http://f.javier.io/rep/books/The%20Elements%20of%20Computing%20Systems.pdf), by Noam Nisan and Shimon Schocken  
+[Crafting Interpreters](https://craftinginterpreters.com/contents.html), by Robert Nystrom
+
+## Progress
 Use this list to include any change in development and to keep track of progress.
 
 - **08/10/21**:

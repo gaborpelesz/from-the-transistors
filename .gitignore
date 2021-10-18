@@ -9,3 +9,6 @@ pyas.egg-info
 
 # binary object files
 *.o
+
+# misc
+.DS_Store

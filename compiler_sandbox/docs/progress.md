@@ -8,6 +8,50 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **20/10/21**:
+    - **Currently**:
+        - I still don't understand one thing: How lexical analyzers deal with whitespaces?
+            - Is it hard-coded into the skeleton that runs the table?
+                - is easy to understand and implement
+                - don't see the caveats yet
+            - Is it coded into the table as a separate regex was created for them in the languages micro-syntax?
+                - I saw people talking about that some scanners contain them as regex-es.
+                - In this case at the first pass the scanner goes through the whole text and backtracts to the first lexeme??
+                    - this would be nuts...
+                    - however!!! --> in C, ";" is a clear separator. Maybe we could split at that symbol...?!
+                        - ";" can't be hardcoded into the scanner generator. It would make the generator uncompatible with any other language that does not use this style.
+            - **Answering the previous question. All of them.**
+                - The moral of the story: **Repeate what you've read! Read it more carefully and you may find your answers.**
+                - The key: The scanner process stops when the DFA recognizes a word --> IT DOES NOT SCAN EVERYTHING TO FIND OUT IT IS STUCK
+                    - this occurs when the current state has no outbound transition! (Engineering a compiler Section 2.5, page 60)
+        - **I decided on the approach**.
+            - generated table-scanner, no hardcoded whitespace or ";" separator thing, with appropriate REs the scanner will eliminate these.
+            - input of the scanner: text
+            - output of the scanner: quadruples -> (token, line, col[, lexeme])
+                - col = index of first character in the line
+                - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
+                - scanner's skeleton should implement line counter and col counter
+    - **Next**:
+        - Design the implementation of the scanner.
+        - Create end-to-end tests and tests for each part
+        - Parts of the implementation:
+            - scanner skeleton
+            - scanner table generator
+                - regex -> NFA
+                    - ...
+                - NFA -> DFA
+                    - ...
+                - (DFA minimization, after tests proved that DFA works)
+        - Identify what each implementation parts need, e.g.:
+            - regex will need a regex parser
+            - FA will need a small graph library
+            - ...
+- **18/10/21**:
+    - **Currently**:
+        - *Scanner algorithm*: Understood the whole scanner and why backtracking is needed (unfortunately I missed that point until now...). Wrote the algorithm outline for scanner generation and scanner "inference".
+    - **Next**:
+        - *Decide on implementation*: Going to read through the different scanner implementation/generation strategies and will decide on which one to use
+
 - **08/10/21**:
     - **Currently**:
         - I’ve read first few sections of the Parser

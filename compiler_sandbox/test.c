@@ -2,7 +2,16 @@
 #include <math.h>
 
 int main(void) {
-    unsigned int l = ceil(log2(9));
-    printf("%d\n", l);
+    int const j = 15;
+    int i = 10;
+
+    int * const ptr = &j;
+
+    ptr = &i;
+    *ptr = 15;
+
+    printf("%d\n", *ptr);
+
+
     return 0;
 }

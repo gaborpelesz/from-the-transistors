@@ -1,13 +1,30 @@
 # Compiler Journal
 
 ## Resources / References
-[Engineering a Compiler](http://www.r-5.org/files/books/computers/compilers/writing/Keith_Cooper_Linda_Torczon-Engineering_a_Compiler-EN.pdf), by Keith Copper, Linda Torczon  
-[The elements of computing systems: building a modern computer from first principles](http://f.javier.io/rep/books/The%20Elements%20of%20Computing%20Systems.pdf), by Noam Nisan and Shimon Schocken  
-[Crafting Interpreters](https://craftinginterpreters.com/contents.html), by Robert Nystrom
+1. [Engineering a Compiler](http://www.r-5.org/files/books/computers/compilers/writing/Keith_Cooper_Linda_Torczon-Engineering_a_Compiler-EN.pdf), by Keith Copper, Linda Torczon
+1. [The elements of computing systems: building a modern computer from first principles](http://f.javier.io/rep/books/The%20Elements%20of%20Computing%20Systems.pdf), by Noam Nisan and Shimon Schocken
+1. [Crafting Interpreters](https://craftinginterpreters.com/contents.html), by Robert Nystrom
 
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **21/10/21**:
+    - **Currently**:
+        - Started implementing the scanner skeleton algorithm which receives a table and classifiers.
+        - I've implemented the original algorithm outline from source \[1\].
+        - I've used dummy data structures and objects, and will be creating my own from everything. The reason for that is in the future I need to build the standard library in a later stage. Also this makes sure that the usage of the C language will be limited to what I've created in the compiler. (lot of unexpected hard bugs can be eliminated this way)
+        - the algorithm can be easily optimized in a lot of ways but first I wanted to make sure that everything is implemented correctly, and it works in theoretical level.
+    - **Next**:
+        - This should be the expected roadmap:
+            1. implement dummy scanner skeleton algorithm
+            1. fill in the dummy details
+            1. test the algorithm
+            1. write test-cases
+            1. try to use dummy tables and hand-generated table to test the behavior
+            1. start to build scanner generation framework and algorithms
+        - And after I feel finished with the scanner generator
+            1. come up with the tokens I'll need at the C language
+            1. come up with the regular expression for the C language micro-syntax
 - **20/10/21**:
     - **Currently**:
         - I still don't understand one thing: How lexical analyzers deal with whitespaces?
@@ -27,7 +44,7 @@ Use this list to include any change in development and to keep track of progress
         - **I decided on the approach**.
             - generated table-scanner, no hardcoded whitespace or ";" separator thing, with appropriate REs the scanner will eliminate these.
             - input of the scanner: text
-            - output of the scanner: quadruples -> (token, line, col[, lexeme])
+            - output of the scanner: triplets/quadruples -> (token, line, col[, lexeme])
                 - col = index of first character in the line
                 - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
                 - scanner's skeleton should implement line counter and col counter
@@ -42,6 +59,7 @@ Use this list to include any change in development and to keep track of progress
                 - NFA -> DFA
                     - ...
                 - (DFA minimization, after tests proved that DFA works)
+                - minimized DFA -> generated code
         - Identify what each implementation parts need, e.g.:
             - regex will need a regex parser
             - FA will need a small graph library

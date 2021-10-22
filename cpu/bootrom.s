@@ -10,7 +10,7 @@ main_loop_init:
     ORR R12, R13, #4, 24 ; BRAM base address:   0x0038_0400
     MOV R11, R12         ; BRAM current address
 
-    ; constructing MOV PC, #0 decoded instruction: 0xe3a0_f000
+    ; constructing "MOV PC, #0" encoded instruction manually: 0xe3a0_f000
     ; this will be added explicitly as the last instruction in BRAM
     MOV R10, #227, 8       ; 0xe300_0000
     ORR R10, R10, #160, 16 ; 0xe3a0_0000

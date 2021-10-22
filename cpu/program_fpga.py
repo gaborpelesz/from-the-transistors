@@ -45,6 +45,6 @@ if __name__ == "__main__":
     try:
         import pyas
     except:
-        raise ImportError("PYAS assembler is not installed on this system. Before using the Pinky programmer, please install PYAS assembler from: https://github.com/gaborpelesz/from-the-transistors")
+        raise ImportError("PYAS assembler is not installed on this system. Before using the Pinky programmer, please install PYAS assembler from: https://github.com/gaborpelesz/from-the-transistors/tree/main/assembler")
 
     main(sys.argv)

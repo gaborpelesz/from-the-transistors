@@ -8,6 +8,16 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **22/10/21**:
+    - **Currently**:
+        - small modifications to the data structures and the scanner generator function
+    - **Next**:
+        - I should consider using the generic array type for the stack instead of the stack_short struct
+        - fill out the dummy data structures with actual code
+            - test the data structure (write unit tests for them -> lets investigate how they are doing tests in C)
+        - implement the tables for the very simple register name analyzer
+            - test the scanner and modify until it works
+        - try other test-cases
 - **21/10/21**:
     - **Currently**:
         - Started implementing the scanner skeleton algorithm which receives a table and classifiers.

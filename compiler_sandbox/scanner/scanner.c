@@ -11,99 +11,42 @@
  * 
  */
 
+#include "array.h"
+#include "stack.h"
+#include "string.h"
+
 // UTIL DEFINITIONS
 #define BOOL unsigned char
 #define TRUE 1
 #define FALSE 0
 
-// -------- struct array ---------
-struct array {}; // 'void' array so it is type-agnostic???
-// -------- struct array ---------
+// PRE-DEFINED GENERATED TABLES ---------
 
-// -------- struct stack ---------
-struct stack_short {
-    // we differentiate allocated size and the stack's size
-    // this way when we empty the stack, we don't necessarily
-    // need to reallocate the memory, we just reset the stack_size
-    //
-    // allocated size can also be very dynamic, it could smartly preallocate
-    // more at once so it doesn't need to do this memory operation on
-    // every push and pop
-    unsigned int stack_size;
-    unsigned int _allocated_size;
-    short* _values;
-};
+// sizes are only imaginary for now
+BOOL accepting_states[10];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
+short transition_table[10][10];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
+unsigned int classify_lexeme[10]; // indexed by accepting state -> returns index of token
+struct string* tokens[10];        // list of token names
 
-void stack_short_init(struct stack_short *const stack) {
-    // stack->values = malloc();
-    // _allocated_size = ~10?
-    // stack_size = 0;
-}
+// --------------------------------------
 
-void stack_short_destroy(struct stack_short *const stack) {
-    // delete stack->values;
-}
-
-void stack_short_push(struct stack_short *const stack, short val) {
-    // push value at the end of the stack
-}
-
-short stack_short_pop(struct stack_short *const stack) {
-    // remove last element from stack and return it
-    return 0;
-}
-
-void stack_short_empty(struct stack_short *const stack) {
-    // empty the stack
-    // maybe don't allocate and deallocate, 
-    // just delete the values and reset the size
-}
-// -------- struct stack ---------
-
-// -------- struct string ---------
-struct string {
-    unsigned int size;
-    char* s;
-};
-
-void string_init(struct string *const str) {
-    // init should add termination char
-    // termination char should not be included in size
-    // ...
-}
-
-void string_destroy(struct string *const str) {
-    // ...
-}
-
-void string_copy(struct string *const dst, const char *const src) {
-    // ...
-}
-
-void string_add_string(struct string *const dst, const char *const src) {
-    // append src at the end of dst
-}
-
-void string_add_char(struct string *const dst, const char ch) {
-    // append ch at the end of dst
-}
-
-char string_at(const struct string *const str, const unsigned int i) {
-    if (i < str->size) {
-        return str->s[i];
-    }
-}
-
-char string_pop(struct string *const str) {
-    // ... todo move terminating character
-    // and return: str->s[str->size];
-    return '0';
-}
-
-// -------- struct string ---------
-
-// TODO better order of parameter table
-void scanner_skeleton_original(const struct string *const text, BOOL *accepting_states, short **transition_table) {
+/**
+ * Given a text, the scanner algorithm separates the lexemes from eachother and classifies
+ *  each of them into a syntactic category (token).
+ * 
+ * Inputs:
+ *  -                              text: string of characters to analyze
+ *  - (MODIFIES) analyzed_token_indices: the function creates a sequential list of the indices of tokens as it discovers them in the text
+ *  - (MODIFIES)  analyzed_token_lexeme: the function creates a sequential list of lexemes as it discovers them in the text
+ * 
+ * Notes:
+ *  The function appends the same amount of elements to both of the inputs that it modifies.
+ *  The two arrays can be indexed with the same index to retreive the lexeme and its correspondent token.
+ * 
+ */
+void scanner_skeleton_original(const struct string *const text,
+                               struct array * const analyzed_token_indices,
+                               struct array * const analyzed_token_lexemes) {
     // FA states:
     #define FA_STATE_INITIAL 0
     #define FA_STATE_ERROR -1
@@ -111,107 +54,49 @@ void scanner_skeleton_original(const struct string *const text, BOOL *accepting_
 
     int i = 0;
 
+    struct string *lexeme = string_create();
+    struct stack_short *state_stack = stack_short_create(); // instead of short, we could use arrays
+
     // Skeleton scanner FA table-driven simulation
     // original algorithm, can be optimized a lot
     while (i < text->size) {
         short current_state = 0;
+        
+        string_empty(lexeme);
 
-        // for lexeme we could make this dynamic, so if it
-        // somehow reaches 255, then it would allocate
-        // another 255 to it. 
-        //   - Also 255 could be changed to a lower number in
-        //     this case so we don't necessarily store too much.
-        //   - Allocation can also be exponential or something
-        //       - first allocate 20 -> 50 -> 100
-        struct string lexeme;
-        string_init(&lexeme);
-
-        struct stack_short state_stack;
-        stack_short_init(&state_stack);
-        stack_short_push(&state_stack, -1); // push "bad"
+        stack_short_empty(state_stack);
+        stack_short_push(state_stack, -1); // push "bad"
 
         // forward pass until either we do not reach
         //  - a state from where we can't go further, or
         //  - end of text
         while (current_state != FA_STATE_ERROR || i < text->size) {
-            string_add_char(&lexeme, string_at(&text, i));
+            string_add_char(lexeme, string_at(text, i));
 
             if (accepting_states[current_state]) {
-                stack_short_empty(&state_stack);
+                stack_short_empty(state_stack);
             }
 
-            stack_short_push(&state_stack, current_state);
+            stack_short_push(state_stack, current_state);
 
             // very simple dummy usage on transition table, might be changed later...
-            current_state = transition_table[current_state][string_at(&text, i)];
+            current_state = transition_table[current_state][string_at(text, i)];
 
             i = i+1; // next char
         }
 
         // rollback loop -> trying to find longest prefix that is accepting
         while (current_state != FA_STATE_BAD && !accepting_states[current_state]) {
-            current_state = stack_short_pop(&state_stack);
-            string_pop(&lexeme); // we don't need to save output
+            current_state = stack_short_pop(state_stack);
+            string_pop(lexeme); // we don't need to save output
             i = i-1; // previous char
         }
 
         if (accepting_states[current_state]) {
-            // TODO create a pair class
-            // TODO create an array class with 'void'
-            //      so it will maybe able to capture any type?!
-            //      is this how they do "templating" in C???
-
-            // implement in this if:
-            // ---------------------
-            // tuple = classify_lexeme(current_state), lexeme
-            // tokens.append(tuple)
+            array_push(analyzed_token_indices, classify_lexeme[current_state]);
+            array_push(analyzed_token_lexemes, lexeme);
         }
     }
-
-    /**
-     * 
-     * inputs: 
-     *  - text -> text to analyze
-     *  - transition_table (not column minimized)
-     *  - accepting_states -> Boolean array (True -> accepting; False -> not accepting)
-     *  - classify_lexeme -> word classification and token assignment based on accepting state
-     * 
-     * ORIGINAL ALGORITHM - Python pseudo
-     * -------------------------------------------------------------
-     *  NextWord() #obviously should be switched with a loop
-     *  current_state = 0
-     *  current_lexeme = ""
-     *  stack = [-1] # -1 means "bad"
-     * 
-     *  i = 0
-     * 
-     *  while current_state != error_state:
-     *      lexeme = lexeme + text[i]
-     * 
-     *      if accepting_states[current_state]:
-     *          stack = []
-     * 
-     *      stack.append(current_state)
-     * 
-     *      current_state = transition_table(current_state, text[i])
-     * 
-     *      i = i+1
-     * 
-     *  while current_state != -1 and not accepting_states[current_state]:
-     *      current_state = stack.pop() #removes and returns last element
-     *      lexeme = lexeme[:-1] #removing last element
-     * 
-     *      i = i-1
-     * 
-     *  if accepting_states[current_state]:
-     *      tokens.append([
-     *          classify_lexeme(current_state), lexeme
-     *      ])
-     *  else:
-     *      raise Exception(f"Error happened when analyzing '{lexeme}'")
-     * 
-     *  -------------------------------------------------------------
-     */
 }
 
 void scanner_skeleton_custom() {

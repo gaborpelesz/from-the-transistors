@@ -12,8 +12,9 @@
  */
 
 #include "array.h"
-#include "stack.h"
 #include "string.h"
+
+#include "stdio.h"
 
 // UTIL DEFINITIONS
 #define BOOL unsigned char
@@ -55,7 +56,7 @@ void scanner_skeleton_original(const struct string *const text,
     int i = 0;
 
     struct string *lexeme = string_create();
-    struct stack_short *state_stack = stack_short_create(); // instead of short, we could use arrays
+    struct arrayi *state_stack = array_create(10); // instead of short, we could use arrays
 
     // Skeleton scanner FA table-driven simulation
     // original algorithm, can be optimized a lot
@@ -64,8 +65,8 @@ void scanner_skeleton_original(const struct string *const text,
         
         string_empty(lexeme);
 
-        stack_short_empty(state_stack);
-        stack_short_push(state_stack, -1); // push "bad"
+        array_empty(state_stack);
+        array_push(state_stack, -1); // push "bad"
 
         // forward pass until either we do not reach
         //  - a state from where we can't go further, or
@@ -74,10 +75,10 @@ void scanner_skeleton_original(const struct string *const text,
             string_add_char(lexeme, string_at(text, i));
 
             if (accepting_states[current_state]) {
-                stack_short_empty(state_stack);
+                array_empty(state_stack);
             }
 
-            stack_short_push(state_stack, current_state);
+            array_push(state_stack, current_state);
 
             // very simple dummy usage on transition table, might be changed later...
             current_state = transition_table[current_state][string_at(text, i)];
@@ -87,7 +88,7 @@ void scanner_skeleton_original(const struct string *const text,
 
         // rollback loop -> trying to find longest prefix that is accepting
         while (current_state != FA_STATE_BAD && !accepting_states[current_state]) {
-            current_state = stack_short_pop(state_stack);
+            current_state = array_pop(state_stack);
             string_pop(lexeme); // we don't need to save output
             i = i-1; // previous char
         }
@@ -146,4 +147,9 @@ void scanner_skeleton_custom() {
      *
      *
      */
+}
+
+int main(void) {
+    printf("All works.\n");
+    return 0;
 }

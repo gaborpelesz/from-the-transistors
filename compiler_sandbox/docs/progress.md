@@ -8,6 +8,11 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **23/10/21**:
+    - **Currently**:
+        - ...
+    - **Next**:
+        - ...
 - **22/10/21**:
     - **Currently**:
         - small modifications to the data structures and the scanner generator function

@@ -2,15 +2,9 @@
 #include <math.h>
 
 int main(void) {
-    int const j = 15;
-    int i = 10;
+    void *ptr = "asdfg";
 
-    int * const ptr = &j;
-
-    ptr = &i;
-    *ptr = 15;
-
-    printf("%d\n", *ptr);
+    printf("%c\n", *(char*)(ptr + 2 * sizeof(char)));
 
 
     return 0;

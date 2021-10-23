@@ -9,7 +9,7 @@
 struct array {
     unsigned int _size;
     unsigned int _capacity;
-    unsigned char _el_size;
+    unsigned char _size_t; // size of the type we are storing
     void* _arr;
 };
 
@@ -49,13 +49,40 @@ void *array_at(struct array * const arr, unsigned int i) {
 
 /**
  * Removes an element from the array at a given index.
+ * Retains the order of the elements.
  * 
  * Inputs:
  *  - arr: pointer, pointing to the struct array object
  *  -   i: index where we want to remove an element
  */
-void array_remove(struct array * const arr, unsigned int i) {
+void array_remove_at(struct array * const arr, unsigned int j) {
+    // backwards removal
+    
+    void *i = arr->_arr + arr->_size * (arr->_size_t - 1);
 
+    void *last = ; // pointer to the last element
+    char *saved = last;
+    --last; // so "last" points to the element before the last element
+
+    // going backwards in the array with pointer "last"
+    for (; last != arr->_arr; last -= arr->_size_t) {
+        saved = actual;
+        actual = last;
+        last = saved;
+        memcpy(position, value, size);
+    }
+
+    --arr->_size; // array shrinks
+}
+
+/**
+ * Removes every element from the array.
+ * 
+ * Inputs:
+ *  - arr: pointer, pointing to the struct array object
+ */
+void array_empty(struct array * const arr) {
+    // emptying is very easy, we just 
 }
 
 #endif

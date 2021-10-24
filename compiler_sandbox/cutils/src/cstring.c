@@ -1,13 +1,7 @@
-#ifndef STRING_H
-#define STRING_H
-
-#define STRING_STRING_INITIAL_CAPACITY 12
-#define STRING_GROWTH_FACTOR 2
-#define STRING_SHRINK_FACTOR 3
-
+#include "string.h"
 
 struct string {
-    unsigned int size;
+    unsigned int size; // equals to the number of characters excluding the termination char
     unsigned int _capacity;
     char* _s;
 };
@@ -16,19 +10,11 @@ struct string *string_create() {
     return _string_create_allocate(STRING_INITIAL_CAPACITY);
 }
 
-/**
- * Creates a pointer to a string from a pointer to a char list by COPY.
- * WARNING: This function assumes that "n" does NOT include the termination character
- * 
- * Input:
- *  - src: char list
- *  -   n: number of elements in the string, excluding the termination character
- */
 struct string *string_create_from(const char *const src, const unsigned int n) {
     // init should add termination char
     // termination char should not be included in size
 
-    unsigned int allocate_capacity = (n + STRING_INITIAL_CAPACITY) / STRING_INITIAL_CAPACITY * STRING_INITIAL_CAPACITY;
+    unsigned int allocate_capacity = ( (n+STRING_TERMINATION_SIZE) + STRING_INITIAL_CAPACITY ) / STRING_INITIAL_CAPACITY * STRING_INITIAL_CAPACITY;
     struct string *dest = _string_create_allocate(allocate_capacity);
     memcpy(dest, src, n);
 
@@ -50,11 +36,26 @@ struct string *_string_create_allocate(const unsigned int cap) {
     return str;
 }
 
-void _string_realloc_shrink(struct string * const str) {
-    unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
-    if (str->size < shrink_limit) {
-        realloc(str->_s, shrink_limit);
+void _string_realloc_growth(struct string * const str, const unsigned int cap) {
+    
+    realloc(str->_s, shrink_limit);
+
+    if (str->size+STRING_TERMINATION_SIZE > cap) {
+        printf("WARNING: [string.h] Reallocating string with loss of data.");
+        str->size = cap - 1;
+        str->_s[str->size] = '\0';
     }
+}
+
+int _string_realloc_shrink(struct string * const str) {
+    unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
+    
+    if (str->size+STRING_TERMINATION_SIZE < shrink_limit) {
+        realloc(str->_s, shrink_limit);
+        return 1;
+    }
+
+    return 0;
 }
 
 void string_destroy(struct string *const str) {
@@ -62,22 +63,21 @@ void string_destroy(struct string *const str) {
     free(str);
 }
 
-void string_copy(struct string *const dst, const char *const src) {
-    
+void string_copy(struct string *const dst, const char *const src, const unsigned int n) {
+    int new_cap = dst->size + n + STRING_TERMINATION_SIZE;
+    _string_realloc_growth(dst, new_cap);
+    memcpy(dst, src, n);
+
+    dst->size = n;
+    dst->_s[n] = '\0';
+
+    return dst;
 }
 
-// deletes the elements of this string
 void string_empty(struct string *const str) {
     str->size = 0;
     _string_realloc_shrink(str);
-}
-
-void string_append_chrlst(struct string *const dst, const char *const src) {
-    // append src at the end of dst
-}
-
-void string_append_chr(struct string *const dst, const char ch) {
-    // append ch at the end of dst
+    str->_s[str->size] = '\0';
 }
 
 char string_at(const struct string *const str, const unsigned int i) {
@@ -89,9 +89,9 @@ char string_at(const struct string *const str, const unsigned int i) {
 }
 
 char string_pop(struct string *const str) {
+    str->size -= STRING_TERMINATION_SIZE;
+    char popped = str->_s[str->size];
     // ... todo move terminating character
     // and return: str->s[str->size];
     return '0';
 }
-
-#endif

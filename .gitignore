@@ -12,3 +12,4 @@ pyas.egg-info
 
 # misc
 .DS_Store
+.vscode

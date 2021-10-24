@@ -8,12 +8,26 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **24/10/21**:
+    - **Currently**:
+        - chosen build system: cmake
+        - ~~chosen unit test framework: [Check](https://github.com/libcheck/check)~~
+            - didn't see a sign of extensive usage in the industry
+            - ~~using [Google Test framework](https://github.com/google/googletest/) instead because I might benefit more from using it. (leaving Check here for reference)~~
+                - extensive use of C++ scared me away...
+                - let's see [cmocka](cmocka.org)
+        - tdd for the basic data structures
+    - **Next**:
+        - play around with cmocka and cmake
+        - create unit tests to test cstring and arrayi structures
+        - test scanner skeleton
 - **23/10/21**:
     - **Currently**:
         - Dropped the generic array for now, I'm implementing specific array and string classes. Later on I can switch it to using a generic array.
         - Implemented the string and arrayi structs (almost)
     - **Next**:
         - finish implementation of string and arrayi.
+        - test these classes!
         - Follow the plan of *22/10/21* and *21/10/21*
 - **22/10/21**:
     - **Currently**:

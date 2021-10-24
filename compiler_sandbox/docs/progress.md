@@ -10,9 +10,11 @@ Use this list to include any change in development and to keep track of progress
 
 - **23/10/21**:
     - **Currently**:
-        - ...
+        - Dropped the generic array for now, I'm implementing specific array and string classes. Later on I can switch it to using a generic array.
+        - Implemented the string and arrayi structs (almost)
     - **Next**:
-        - ...
+        - finish implementation of string and arrayi.
+        - Follow the plan of *22/10/21* and *21/10/21*
 - **22/10/21**:
     - **Currently**:
         - small modifications to the data structures and the scanner generator function

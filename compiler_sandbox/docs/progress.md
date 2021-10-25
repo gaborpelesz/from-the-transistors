@@ -8,6 +8,15 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **25/10/21**:
+    - **Currently**:
+        - created cmake and cmocka unittest framework for my cutils
+    - **Next**:
+        - write unittests for cstring.h
+        - test and solve issues if any
+        - include arrayi in cutils somehow
+        - write unittests for arrayi.h
+        - Follow the plan of *22/10/21* and *21/10/21*
 - **24/10/21**:
     - **Currently**:
         - chosen build system: cmake
@@ -15,7 +24,7 @@ Use this list to include any change in development and to keep track of progress
             - didn't see a sign of extensive usage in the industry
             - ~~using [Google Test framework](https://github.com/google/googletest/) instead because I might benefit more from using it. (leaving Check here for reference)~~
                 - extensive use of C++ scared me away...
-                - let's see [cmocka](cmocka.org)
+                - let's see **[cmocka](cmocka.org)**
         - tdd for the basic data structures
     - **Next**:
         - play around with cmocka and cmake

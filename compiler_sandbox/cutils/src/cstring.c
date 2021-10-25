@@ -1,10 +1,14 @@
-#include "string.h"
+#include "../include/cutils/cstring.h"
 
-struct string {
-    unsigned int size; // equals to the number of characters excluding the termination char
-    unsigned int _capacity;
-    char* _s;
-};
+#include <stdlib.h>
+#include <memory.h>
+#include <stdio.h>
+
+// struct string {
+//     unsigned int size; // equals to the number of characters excluding the termination char
+//     unsigned int _capacity;
+//     char* _s;
+// };
 
 struct string *string_create() {
     return _string_create_allocate(STRING_INITIAL_CAPACITY);
@@ -37,8 +41,14 @@ struct string *_string_create_allocate(const unsigned int cap) {
 }
 
 void _string_realloc_growth(struct string * const str, const unsigned int cap) {
-    
-    realloc(str->_s, shrink_limit);
+    unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
+    void* new_s = realloc(str->_s, shrink_limit);
+
+    if (new_s != NULL) {
+        str->_s = new_s;
+    } else {
+        // ... TODO error/warning couldn't reallocate array
+    }
 
     if (str->size+STRING_TERMINATION_SIZE > cap) {
         printf("WARNING: [string.h] Reallocating string with loss of data.");
@@ -51,8 +61,13 @@ int _string_realloc_shrink(struct string * const str) {
     unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
     
     if (str->size+STRING_TERMINATION_SIZE < shrink_limit) {
-        realloc(str->_s, shrink_limit);
-        return 1;
+        void* new_s = realloc(str->_s, shrink_limit);
+
+        if (new_s != NULL) {
+            str->_s = new_s;
+        } else {
+            // ... TODO error/warning couldn't reallocate array
+        }
     }
 
     return 0;
@@ -70,8 +85,6 @@ void string_copy(struct string *const dst, const char *const src, const unsigned
 
     dst->size = n;
     dst->_s[n] = '\0';
-
-    return dst;
 }
 
 void string_empty(struct string *const str) {

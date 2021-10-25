@@ -1,8 +1,6 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <stdlib.h>
-
 #define STRING_INITIAL_CAPACITY 12
 #define STRING_GROWTH_FACTOR 2
 #define STRING_SHRINK_FACTOR 3

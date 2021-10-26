@@ -4,6 +4,10 @@
 #include <memory.h>
 #include <stdio.h>
 
+#ifdef UNIT_TESTING
+    #include <cutils/cutils_unittest.h>
+#endif // UNIT_TESTING
+
 // struct string {
 //     unsigned int size; // equals to the number of characters excluding the termination char
 //     unsigned int _capacity;
@@ -11,33 +15,30 @@
 // };
 
 struct string *string_create() {
-    return _string_create_allocate(STRING_INITIAL_CAPACITY);
+    return _string_create_allocate(0);
 }
 
-struct string *string_create_from(const char *const src, const unsigned int n) {
-    // init should add termination char
-    // termination char should not be included in size
+struct string *string_create_from(const char *const src) {
+    // 1. n <-- run through the list to determine its length
+    // 2. allocate accordingly
 
-    unsigned int allocate_capacity = ( (n+STRING_TERMINATION_SIZE) + STRING_INITIAL_CAPACITY ) / STRING_INITIAL_CAPACITY * STRING_INITIAL_CAPACITY;
-    struct string *dest = _string_create_allocate(allocate_capacity);
-    memcpy(dest, src, n);
+    // ----------------------
+    // unsigned int allocate_capacity = ( (n+STRING_TERMINATION_SIZE) + STRING_INITIAL_CAPACITY ) / STRING_INITIAL_CAPACITY * STRING_INITIAL_CAPACITY;
+    // struct string *dest = _string_create_allocate(allocate_capacity);
+    // memcpy(dest, src, n);
 
-    dest->size = n;
-    dest->_s[n] = '\0';
+    // dest->size = n;
+    // dest->_s[n] = '\0';
 
-    return dest;
+    return NULL;
 }
 
-struct string *_string_create_allocate(const unsigned int cap) {
-    struct string *str = malloc( sizeof(struct string) );
+struct string *_string_create_allocate(const unsigned int size) {
+    // TODO
+    // instead of creating by capacity, have a size and determine what
+    // is the capacity needed for this size...
 
-    str->_capacity = cap;
-    str->_s = malloc(cap * sizeof(*(str->_s)));
-
-    str->size = 0;
-    str->_s[str->size] = '\0';
-
-    return str;
+    return NULL;
 }
 
 void _string_realloc_growth(struct string * const str, const unsigned int cap) {
@@ -78,13 +79,17 @@ void string_destroy(struct string *const str) {
     free(str);
 }
 
-void string_copy(struct string *const dst, const char *const src, const unsigned int n) {
-    int new_cap = dst->size + n + STRING_TERMINATION_SIZE;
-    _string_realloc_growth(dst, new_cap);
-    memcpy(dst, src, n);
+void string_copy(struct string *const dst, const char *const src) {
+    // MIGHT BE SHIT
+    //      |
+    //      v
+    //
+    // int new_cap = dst->size + STRING_TERMINATION_SIZE;
+    // _string_realloc_growth(dst, new_cap);
+    // memcpy(dst, src, n);
 
-    dst->size = n;
-    dst->_s[n] = '\0';
+    // dst->size = n;
+    // dst->_s[n] = '\0';
 }
 
 void string_empty(struct string *const str) {

@@ -6,9 +6,12 @@ project(cUtils VERSION 0.0.1
                DESCRIPTION "C utilities to be used in other projects"
                LANGUAGES C)
 
+option(BUILD_TESTING "Build for unittesting." OFF)
+
 # TESTING
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     include(CTest)
+    add_compile_definitions(UNIT_TESTING)
 endif()
 
 

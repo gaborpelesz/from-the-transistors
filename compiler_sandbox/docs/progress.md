@@ -8,6 +8,12 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **26/10/21**:
+    - **Currently**:
+        - created cmocka framework for memory leak
+        - started unittesting cstring.h
+    - **Next**:
+        - **25/10/21**
 - **25/10/21**:
     - **Currently**:
         - created cmake and cmocka unittest framework for my cutils

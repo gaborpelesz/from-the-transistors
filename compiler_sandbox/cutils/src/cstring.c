@@ -113,3 +113,12 @@ char string_pop(struct string *const str) {
     // and return: str->s[str->size];
     return '0';
 }
+
+void string_append_chrlst(struct string *const dst, const char *const src) {
+
+}
+
+
+void string_append_chr(struct string *const dst, const char ch) {
+    
+}

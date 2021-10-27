@@ -3,16 +3,16 @@
 
 #define STRING_INITIAL_CAPACITY 12
 #define STRING_GROWTH_FACTOR 2
-#define STRING_SHRINK_FACTOR 3
+#define STRING_SHRINK_FACTOR 2
 
 #define STRING_TERMINATION_SIZE 1
 
 /**
  * Implementation decisions:
  *  - does size include termination character?
- *      - Currently, no.
+ *      - No.
  *  - when passing a const char*, do we need to provide the number of chars in the array?
- *      - Currently, yes.
+ *      - No.
  */
 struct string {
     unsigned int size; // equals to the number of characters excluding the termination char
@@ -22,21 +22,17 @@ struct string {
 
 /**
  * Creates a pointer to a string object
- * 
  */
 struct string *string_create();
 
 /**
  * Creates a pointer to a string from a pointer to a char list by COPY.
- * WARNING: This function assumes that "n" does NOT include the termination character
- * 
- * Input:
- *  - src: char list
- *  -   n: number of elements in the string, excluding the termination character
  */
 struct string *string_create_from(const char *const src);
-struct string *_string_create_allocate(const unsigned int cap);
+
 void string_destroy(struct string *const str);
+
+struct string *_string_create_allocate(const unsigned int cap);
 
 /**
  * Growing the internal array if necessary

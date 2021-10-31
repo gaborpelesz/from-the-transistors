@@ -33,7 +33,7 @@ struct string *string_create_from(const char *const src) {
     return NULL;
 }
 
-struct string *_string_create_allocate(const unsigned int size) {
+struct string *_string_create_allocate(const unsigned int str_size) {
     // TODO
     // instead of creating by capacity, have a size and determine what
     // is the capacity needed for this size...
@@ -41,37 +41,33 @@ struct string *_string_create_allocate(const unsigned int size) {
     return NULL;
 }
 
-void _string_realloc_growth(struct string * const str, const unsigned int cap) {
-    unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
-    void* new_s = realloc(str->_s, shrink_limit);
+/**
+ * Assumes that "str" contains the previous size!
+ */
+void _string_realloc(struct string * const str, const unsigned int new_str_size) {
+    // growing
+    if (new_str_size > str->size) {
 
-    if (new_s != NULL) {
-        str->_s = new_s;
-    } else {
-        // ... TODO error/warning couldn't reallocate array
     }
+    // shirking
+    else if (new_str_size < str->size) {
 
-    if (str->size+STRING_TERMINATION_SIZE > cap) {
-        printf("WARNING: [string.h] Reallocating string with loss of data.");
-        str->size = cap - 1;
-        str->_s[str->size] = '\0';
     }
-}
-
-int _string_realloc_shrink(struct string * const str) {
-    unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
     
-    if (str->size+STRING_TERMINATION_SIZE < shrink_limit) {
-        void* new_s = realloc(str->_s, shrink_limit);
+    // unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
+    // void* new_s = realloc(str->_s, shrink_limit);
 
-        if (new_s != NULL) {
-            str->_s = new_s;
-        } else {
-            // ... TODO error/warning couldn't reallocate array
-        }
-    }
+    // if (new_s != NULL) {
+    //     str->_s = new_s;
+    // } else {
+    //     // ... TODO error/warning couldn't reallocate array
+    // }
 
-    return 0;
+    // if (str->size+STRING_TERMINATION_SIZE > cap) {
+    //     printf("WARNING: [string.h] Reallocating string with loss of data.");
+    //     str->size = cap - 1;
+    //     str->_s[str->size] = '\0';
+    // }
 }
 
 void string_destroy(struct string *const str) {
@@ -93,8 +89,8 @@ void string_copy(struct string *const dst, const char *const src) {
 }
 
 void string_empty(struct string *const str) {
+    _string_realloc(str, 0);
     str->size = 0;
-    _string_realloc_shrink(str);
     str->_s[str->size] = '\0';
 }
 

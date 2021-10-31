@@ -32,20 +32,12 @@ struct string *string_create_from(const char *const src);
 
 void string_destroy(struct string *const str);
 
-struct string *_string_create_allocate(const unsigned int cap);
+struct string *_string_create_allocate(const unsigned int str_size);
 
 /**
- * Growing the internal array if necessary
+ * Growing/shrinking the internal array if necessary
  */
-void _string_realloc_growth(struct string * const str, const unsigned int cap);
-
-/**
- * Only reallocates the internal array if it reached the shrink limit.
- * 
- * Returns:
- *  - int: if reallocation occured
- */
-int _string_realloc_shrink(struct string * const str);
+void _string_realloc(struct string * const str, const unsigned int new_str_size);
 
 
 void string_copy(struct string *const dst, const char *const src);

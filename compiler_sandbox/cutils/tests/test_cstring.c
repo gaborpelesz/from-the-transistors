@@ -11,7 +11,6 @@
 #include <cutils/cstring.h>
 // #include <cutils/arrayi.h>
 
-/* A test case that does nothing and succeeds. */
 static void test_api_string_create(void **state) {
     struct string* str = string_create();
 
@@ -29,10 +28,11 @@ static void test_api_string_create(void **state) {
 static void test_api_string_destroy(void **state) {
     // at this point string_create has been already tested
     struct string* str = string_create();
+    struct string* str2 = string_create_from("Test string.");
 
-    assert_non_null(str);
-
-    string_destroy(str); // cmocka will check for memory leaks
+    // cmocka will check for memory leaks
+    string_destroy(str);
+    string_destroy(str2);
 }
 
 static void test_api_string_create_from(void **state) {
@@ -51,15 +51,58 @@ static void test_api_string_create_from(void **state) {
 }
 
 static void test_internal_string_create_allocate(void **state) {
-    assert_true(0);
+    struct string *str = _string_create_allocate(14);
+
+    assert_int_equal(str->size, 14);
+
+    // assuming growth factor == 2
+    // and initial capacity == 12
+    // then capacity must have increased from 12 to 24
+    assert_int_equal(STRING_GROWTH_FACTOR, 2);
+    assert_int_equal(STRING_INITIAL_CAPACITY, 12);
+    assert_int_equal(str->_capacity, 24);
+
+    *state = str;
 }
 
-static void test_internal_string_realloc_growth(void **state) {
-    assert_true(0);
-}
+static void test_internal_string_realloc(void **state) {
+    struct string* str = string_create();
 
-static void test_internal_string_realloc_shrink(void **state) {
-    assert_true(0);
+    assert_int_equal(STRING_GROWTH_FACTOR, 2);
+    assert_int_equal(STRING_INITIAL_CAPACITY, 12);
+
+    // GROWTH
+    _string_realloc(str, 16);
+
+    assert_int_equal(str->size, 16);
+    assert_int_equal(str->_capacity, 24);
+
+    // GROWTH WITHIN LIMIT
+    _string_realloc(str, 18);
+
+    assert_int_equal(str->size, 18);
+    assert_int_equal(str->_capacity, 24);
+
+    // SHRINK
+    _string_realloc(str, 8);
+
+    assert_int_equal(str->size, 8);
+    assert_int_equal(str->_capacity, 12);
+
+    // SHRINK WITHIN LIMIT
+    _string_realloc(str, 4);
+
+    assert_int_equal(str->size, 4);
+    assert_int_equal(str->_capacity, 12);
+
+    // NO CHANGE
+    _string_realloc(str, 4);
+
+    assert_int_equal(str->size, 4);
+    assert_int_equal(str->_capacity, 12);
+
+    // finish
+    *state = str;
 }
 
 static void test_api_string_copy(void **state) {
@@ -140,52 +183,52 @@ static void test_api_string_append_chr(void **state) {
 }
 
 static void test_api_string_at(void **state) {
-    // struct string* str = string_create_from("Test string.");
+    struct string* str = string_create_from("Test string.");
 
-    // assert_string_equal(string_at(str, 0), 'T');
-    // assert_string_equal(string_at(str, 5), 's');
-    // assert_string_equal(string_at(str, 10), 'n');
-    
-    struct string* str = malloc( sizeof(struct string) );
-    str->size = 8;
-    str->_capacity = 12;
-    str->_s = malloc( 12 * sizeof(char));
+    assert_memory_equal(string_at(str, 0), 'T', sizeof(char));
+    assert_memory_equal(string_at(str, 5), 's', sizeof(char));
+    assert_memory_equal(string_at(str, 10), 'n', sizeof(char));
 
-    const char* src = "Test str";
-    str->_s = memcpy(str->_s, src, 9 * sizeof(char));
-
-    assert_string_equal(str->_s[0], 's');
-    //assert_return_code()
-
-    //*state = str;
-
-    free(str->_s);
-    free(str);
+    *state = str;
 }
 
 static void test_api_string_pop(void **state) {
-    assert_true(0);
+    struct string* str = string_create_from("Test string.");
+
+    unsigned int before_size = str->size;
+    unsigned int before_capacity = str->_capacity;
+
+    char popped = string_pop(str);
+
+    assert_memory_equal(popped, '.', sizeof(char));
+    assert_int_equal(before_size-1, str->size);
+
+    // expect shrink
+    assert_int_equal(STRING_GROWTH_FACTOR, 2);
+    assert_int_equal(STRING_INITIAL_CAPACITY, 12);
+    assert_int_equal(before_capacity-STRING_INITIAL_CAPACITY, str->_capacity);
 }
 
+/* -------- end of tests --------- */
+
 static int teardown_string_destroy(void **state) {
-    //string_destroy(*state);
+    string_destroy(*state);
     return 0;
 }
 
 int main(void) {
     const struct CMUnitTest tests[] = {
-        //cmocka_unit_test(test_api_string_create),
-        // cmocka_unit_test(test_api_string_destroy),
-        // cmocka_unit_test_teardown(test_api_string_create_from, teardown_string_destroy),
-        // cmocka_unit_test(test_internal_string_create_allocate),
-        // cmocka_unit_test(test_internal_string_realloc_growth),
-        // cmocka_unit_test(test_internal_string_realloc_shrink),
-        // cmocka_unit_test_teardown(test_api_string_copy, teardown_string_destroy),
-        // cmocka_unit_test_teardown(test_api_string_empty, teardown_string_destroy),
-        // cmocka_unit_test_teardown(test_api_string_append_chrlst, teardown_string_destroy),
-        // cmocka_unit_test_teardown(test_api_string_append_chr, teardown_string_destroy),
+        cmocka_unit_test(test_api_string_create),
+        cmocka_unit_test(test_api_string_destroy),
+        cmocka_unit_test_teardown(test_api_string_create_from, teardown_string_destroy),
+        cmocka_unit_test(test_internal_string_create_allocate),
+        cmocka_unit_test(test_internal_string_realloc),
+        cmocka_unit_test_teardown(test_api_string_copy, teardown_string_destroy),
+        cmocka_unit_test_teardown(test_api_string_empty, teardown_string_destroy),
+        cmocka_unit_test_teardown(test_api_string_append_chrlst, teardown_string_destroy),
+        cmocka_unit_test_teardown(test_api_string_append_chr, teardown_string_destroy),
         cmocka_unit_test_teardown(test_api_string_at, teardown_string_destroy),
-        // cmocka_unit_test_teardown(test_api_string_pop, teardown_string_destroy),
+        cmocka_unit_test_teardown(test_api_string_pop, teardown_string_destroy),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

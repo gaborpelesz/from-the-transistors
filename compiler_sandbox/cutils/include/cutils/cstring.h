@@ -3,9 +3,13 @@
 
 #define STRING_INITIAL_CAPACITY 12
 #define STRING_GROWTH_FACTOR 2
-#define STRING_SHRINK_FACTOR 2
+#define STRING_SHRINK_FACTOR 2.f/3.f
 
-#define STRING_TERMINATION_SIZE 1
+typedef enum _STRING_ERROR {
+    _REALLOC_ERROR = -1,
+    _REALLOC_CHANGED = 0,
+    _REALLOC_NO_CHANGE = 1
+} _STRING_ERROR;
 
 /**
  * Implementation decisions:
@@ -30,15 +34,16 @@ struct string *string_create();
  */
 struct string *string_create_from(const char *const src);
 
-void string_destroy(struct string *const str);
+void string_destroy(struct string *str);
 
 struct string *_string_create_allocate(const unsigned int str_size);
+
+unsigned int _string_calc_capacity(unsigned int size);
 
 /**
  * Growing/shrinking the internal array if necessary
  */
-void _string_realloc(struct string * const str, const unsigned int new_str_size);
-
+int _string_realloc(struct string * const str, const unsigned int new_str_size);
 
 void string_copy(struct string *const dst, const char *const src);
 

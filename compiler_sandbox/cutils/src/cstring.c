@@ -3,89 +3,121 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
+#include <math.h>
 
 #ifdef UNIT_TESTING
     #include <cutils/cutils_unittest.h>
 #endif // UNIT_TESTING
 
-// struct string {
-//     unsigned int size; // equals to the number of characters excluding the termination char
-//     unsigned int _capacity;
-//     char* _s;
-// };
+static inline unsigned int _string_chrlst_len(const char *const chrlst) {
+    unsigned int size = 0;
+    for(; chrlst[size] != '\0'; size++);
+    return size;
+}
 
+// DONE
 struct string *string_create() {
     return _string_create_allocate(0);
 }
 
 struct string *string_create_from(const char *const src) {
-    // 1. n <-- run through the list to determine its length
-    // 2. allocate accordingly
-
-    // ----------------------
-    // unsigned int allocate_capacity = ( (n+STRING_TERMINATION_SIZE) + STRING_INITIAL_CAPACITY ) / STRING_INITIAL_CAPACITY * STRING_INITIAL_CAPACITY;
-    // struct string *dest = _string_create_allocate(allocate_capacity);
-    // memcpy(dest, src, n);
-
-    // dest->size = n;
-    // dest->_s[n] = '\0';
-
-    return NULL;
+    struct string* str = string_create();
+    string_copy(str, src);
+    return str;
 }
 
+// DONE
 struct string *_string_create_allocate(const unsigned int str_size) {
-    // TODO
-    // instead of creating by capacity, have a size and determine what
-    // is the capacity needed for this size...
+    struct string *str = malloc(sizeof(struct string));
 
-    return NULL;
+    if (str != NULL) {
+        str->_capacity = _string_calc_capacity(str_size);
+        str->_s = malloc(str->_capacity * sizeof(char));
+        
+        if (str->_s != NULL) {
+            str->size = 0;
+            str->_s[0] = '\0';
+        } else {
+            printf("[cstring.c -> _string_create_allocate()] MALLOC ERROR: Couldn't allocate internal array.\n");
+            free(str);
+            str = NULL;
+        }
+    }
+
+    return str;
+}
+
+// DONE
+unsigned int _string_calc_capacity(unsigned int size) {
+    if (size < STRING_INITIAL_CAPACITY - 1) {
+        return STRING_INITIAL_CAPACITY;
+    }
+
+    unsigned int x = (unsigned int)floorf(logf((size+1)/12)/logf(STRING_GROWTH_FACTOR)) + 1;
+
+    return STRING_INITIAL_CAPACITY * (int)(powf(STRING_GROWTH_FACTOR, x) + 0.5);
 }
 
 /**
- * Assumes that "str" contains the previous size!
+ * Assumes that "str" contains the previous size and not the new!
+ * 
+ * Return:
+ *  
  */
-void _string_realloc(struct string * const str, const unsigned int new_str_size) {
-    // growing
-    if (new_str_size > str->size) {
-
+// DONE
+_STRING_ERROR _string_realloc(struct string * const str, const unsigned int new_str_size) {
+    if (new_str_size == str->size) {
+        return _REALLOC_NO_CHANGE;
     }
-    // shirking
-    else if (new_str_size < str->size) {
 
+    unsigned int new_capacity = _string_calc_capacity(new_str_size);
+
+    if (new_capacity == str->_capacity) {
+        return _REALLOC_NO_CHANGE;
     }
-    
-    // unsigned int shrink_limit = str->_capacity / STRING_SHRINK_FACTOR;
-    // void* new_s = realloc(str->_s, shrink_limit);
 
-    // if (new_s != NULL) {
-    //     str->_s = new_s;
-    // } else {
-    //     // ... TODO error/warning couldn't reallocate array
-    // }
+    // shrink rule
+    if (new_str_size < str->size && new_str_size > (int)(new_capacity * STRING_SHRINK_FACTOR)) {
+        return _REALLOC_NO_CHANGE;
+    }
 
-    // if (str->size+STRING_TERMINATION_SIZE > cap) {
-    //     printf("WARNING: [string.h] Reallocating string with loss of data.");
-    //     str->size = cap - 1;
-    //     str->_s[str->size] = '\0';
-    // }
+    void* new_s = realloc(str->_s, new_capacity * sizeof(char));
+
+    if (new_s != NULL) {
+        str->_s = new_s;
+        str->_capacity = new_capacity;
+
+        return _REALLOC_CHANGED;
+    } else {
+        printf("[cstring.c -> _string_realloc()] Reallocation error\n");
+        return _REALLOC_ERROR;
+    }
 }
 
-void string_destroy(struct string *const str) {
-    free(str->_s);
-    free(str);
+// DONE
+void string_destroy(struct string *str) {
+    if (str->_s != NULL) {
+        free(str->_s);
+        str->_s = NULL;
+    }
+
+    if (str != NULL) {
+        free(str);
+        str = NULL;
+    }
 }
 
 void string_copy(struct string *const dst, const char *const src) {
-    // MIGHT BE SHIT
-    //      |
-    //      v
-    //
-    // int new_cap = dst->size + STRING_TERMINATION_SIZE;
-    // _string_realloc_growth(dst, new_cap);
-    // memcpy(dst, src, n);
+    unsigned int size = _string_chrlst_len(src);
 
-    // dst->size = n;
-    // dst->_s[n] = '\0';
+    _STRING_ERROR retr = _string_realloc(dst, size);
+
+    if (retr != _REALLOC_ERROR) {
+        memcpy(dst->_s, src, (size+1) * sizeof(char));
+        dst->size = size;
+    } else {
+
+    }
 }
 
 void string_empty(struct string *const str) {
@@ -97,24 +129,43 @@ void string_empty(struct string *const str) {
 char string_at(const struct string *const str, const unsigned int i) {
     if (i > str->size) {
         printf("Overindexing error: trying to retreive element at index '%d', while the array has only %d elements.\n", i, str->size);
-        exit(1);
     }
     return str->_s[i];
 }
 
 char string_pop(struct string *const str) {
-    str->size -= STRING_TERMINATION_SIZE;
-    char popped = str->_s[str->size];
-    // ... todo move terminating character
-    // and return: str->s[str->size];
-    return '0';
+    char popped = str->_s[str->size-1];
+    
+
+    _string_realloc(str, str->size-1);
+
+    str->size -= 1;
+    str->_s[str->size] = '\0';
+    
+    return popped;
 }
 
 void string_append_chrlst(struct string *const dst, const char *const src) {
+    unsigned int src_size = _string_chrlst_len(src);
+    unsigned int new_size = dst->size + src_size;
 
+    _STRING_ERROR ret = _string_realloc(dst, new_size);
+
+    if (ret != _REALLOC_ERROR) {
+        memcpy(dst->_s + dst->size * sizeof(char), src, (src_size+1) * sizeof(char));
+        dst->size = new_size;
+    }
 }
 
 
 void string_append_chr(struct string *const dst, const char ch) {
-    
+    unsigned int new_size = dst->size + 1;
+
+    _STRING_ERROR ret = _string_realloc(dst, new_size);
+
+    if (ret != _REALLOC_ERROR) {
+        dst->_s[dst->size] = ch;
+        dst->size = new_size;
+        dst->_s[new_size] = '\0';
+    }
 }

@@ -5,11 +5,17 @@
  * and other essential/utility or internal functions to have an extended
  * behavior, so they are unit-testable or easily debug-able
  * 
- * Include like this for unit testing builds:
+ * Include in source files like this for unit testing builds:
+ * 
+ * cstring.c
  * ------------------
- *     #ifdef UNIT_TESTING
- *         #include <cutils/cutils_unittest.h>
- *     #endif // UNIT_TESTING
+ * // ...
+ * 
+ * #ifdef UNIT_TESTING
+ *     #include <cutils/cutils_unittest.h>
+ * #endif // UNIT_TESTING
+ * 
+ * // ...
  * 
  */
 

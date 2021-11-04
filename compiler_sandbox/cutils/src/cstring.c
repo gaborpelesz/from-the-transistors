@@ -15,7 +15,6 @@ static inline unsigned int _string_chrlst_len(const char *const chrlst) {
     return size;
 }
 
-// DONE
 struct string *string_create() {
     return _string_create_allocate(0);
 }
@@ -26,7 +25,6 @@ struct string *string_create_from(const char *const src) {
     return str;
 }
 
-// DONE
 struct string *_string_create_allocate(const unsigned int str_size) {
     struct string *str = malloc(sizeof(struct string));
 
@@ -47,15 +45,18 @@ struct string *_string_create_allocate(const unsigned int str_size) {
     return str;
 }
 
-// DONE
 unsigned int _string_calc_capacity(unsigned int size) {
-    if (size < STRING_INITIAL_CAPACITY - 1) {
+    // +1 because of termination character
+    unsigned int size_with_t = size + 1;
+
+    if ((size_with_t) < STRING_INITIAL_CAPACITY) {
         return STRING_INITIAL_CAPACITY;
     }
 
-    unsigned int x = (unsigned int)floorf(logf((size+1)/12)/logf(STRING_GROWTH_FACTOR)) + 1;
+    // size + 1 because of termination character
+    unsigned int growth_factor_pow = (unsigned int)floorf(logf((size_with_t)/12)/logf(STRING_GROWTH_FACTOR)) + 1;
 
-    return STRING_INITIAL_CAPACITY * (int)(powf(STRING_GROWTH_FACTOR, x) + 0.5);
+    return STRING_INITIAL_CAPACITY * (int)(powf(STRING_GROWTH_FACTOR, growth_factor_pow) + 0.5);
 }
 
 /**
@@ -64,7 +65,6 @@ unsigned int _string_calc_capacity(unsigned int size) {
  * Return:
  *  
  */
-// DONE
 _STRING_ERROR _string_realloc(struct string * const str, const unsigned int new_str_size) {
     if (new_str_size == str->size) {
         return _REALLOC_NO_CHANGE;
@@ -94,7 +94,6 @@ _STRING_ERROR _string_realloc(struct string * const str, const unsigned int new_
     }
 }
 
-// DONE
 void string_destroy(struct string *str) {
     if (str->_s != NULL) {
         free(str->_s);
@@ -136,7 +135,6 @@ char string_at(const struct string *const str, const unsigned int i) {
 char string_pop(struct string *const str) {
     char popped = str->_s[str->size-1];
     
-
     _string_realloc(str, str->size-1);
 
     str->size -= 1;

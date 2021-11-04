@@ -11,7 +11,7 @@ option(BUILD_TESTING "Build for unittesting." OFF)
 # TESTING
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     include(CTest)
-    add_compile_definitions(UNIT_TESTING)
+    add_compile_definitions(UNIT_TESTING=1)
 endif()
 
 

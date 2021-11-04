@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
-#define UNIT_TESTING 1
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -9,7 +8,6 @@
 #include <cmocka.h>
 
 #include <cutils/cstring.h>
-// #include <cutils/arrayi.h>
 
 static void test_api_string_create(void **state) {
     struct string* str = string_create();
@@ -226,8 +224,6 @@ static void test_api_string_pop(void **state) {
     unsigned int before_capacity = str->_capacity;
 
     char popped = string_pop(str);
-
-    printf("this: %c\n", popped);
 
     assert_int_equal(popped, '.');
     assert_int_equal(before_size-1, str->size);

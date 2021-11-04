@@ -43,7 +43,7 @@ unsigned int _string_calc_capacity(unsigned int size);
 /**
  * Growing/shrinking the internal array if necessary
  */
-int _string_realloc(struct string * const str, const unsigned int new_str_size);
+_STRING_ERROR _string_realloc(struct string * const str, const unsigned int new_str_size);
 
 void string_copy(struct string *const dst, const char *const src);
 

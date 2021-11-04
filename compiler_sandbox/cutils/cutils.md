@@ -4,7 +4,12 @@ My utility data structures and useful tools.
 
 Build tests with:
 ```bash
-cmake .. -BUILD_TESTING=ON && cmake --build . && ./tests/test_cstring
+cmake .. -BUILD_TESTING=ON && cmake --build . && 
+```
+
+Run unit tests after build:
+```bash
+./tests/<test_name>
 ```
 
 ----

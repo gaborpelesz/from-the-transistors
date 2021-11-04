@@ -8,6 +8,14 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **04/11/21**:
+    - **Currently**:
+        - recents days did do most of the goals of *25/10/21**
+            - unittests and implementation for cstring.h
+            - include array in cutils
+        - Quickly create the basic functionality of arrayi that is needed inside the scanner. Any additional functionality will be implemented on need.
+    - **Next**:
+        - ...
 - **26/10/21**:
     - **Currently**:
         - created cmocka framework for memory leak

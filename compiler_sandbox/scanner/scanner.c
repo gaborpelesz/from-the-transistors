@@ -11,8 +11,8 @@
  * 
  */
 
-#include "array.h"
-#include "string.h"
+#include "arrayi.h"
+#include "cstring.h"
 
 #include "stdio.h"
 
@@ -56,8 +56,8 @@ void scanner_skeleton_original(const struct string *const text,
     int i = 0;
 
     struct string *lexeme = string_create();
-    struct arrayi *state_stack = array_create(10); // instead of short, we could use arrays
-
+    struct arrayi *state_stack = array_create();
+    
     // Skeleton scanner FA table-driven simulation
     // original algorithm, can be optimized a lot
     while (i < text->size) {

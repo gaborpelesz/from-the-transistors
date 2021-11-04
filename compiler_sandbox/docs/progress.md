@@ -15,7 +15,7 @@ Use this list to include any change in development and to keep track of progress
             - include array in cutils
         - Quickly create the basic functionality of arrayi that is needed inside the scanner. Any additional functionality will be implemented on need.
     - **Next**:
-        - ...
+        - Follow the plan of *22/10/21* and *21/10/21*
 - **26/10/21**:
     - **Currently**:
         - created cmocka framework for memory leak

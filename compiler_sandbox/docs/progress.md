@@ -8,6 +8,12 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **16/11/21**:
+    - **Currently**:
+        - make scanner.c a cmake program (make a main.c/test.c program to test it)
+        - refactoring cutils/arrayi and cutils/string
+    - **Next**:
+        - ...
 - **04/11/21**:
     - **Currently**:
         - recents days did do most of the goals of *25/10/21**

@@ -1,1 +1,0 @@
-gcc scanner.c && ./a.out && rm ./a.out

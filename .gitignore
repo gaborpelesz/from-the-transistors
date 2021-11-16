@@ -7,6 +7,9 @@ build
 dist
 pyas.egg-info
 
+# local folder(s) containing code to experiment
+experiment
+
 # binary object files
 *.o
 

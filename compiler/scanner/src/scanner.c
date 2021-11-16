@@ -26,10 +26,10 @@
 
 // TODO sizes are only imaginary for now
 // TODO make these variables' scope local to this file
-BOOL accepting_states[10];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
-short transition_table[10][10];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
-unsigned int classify_lexeme[10]; // indexed by accepting state -> returns index of token
-struct cutils_string* tokens[10];        // list of token names
+BOOL accepting_states[4];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
+short transition_table[4][256];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
+unsigned int classify_lexeme[4]; // indexed by accepting state -> returns index of token
+struct cutils_string* tokens[2];        // list of token names
 
 // --------------------------------------
 
@@ -48,7 +48,7 @@ struct cutils_string* tokens[10];        // list of token names
  */
 void scanner_skeleton_original(const struct cutils_string *const text,
                                struct cutils_arrayi * const analyzed_token_indices,
-                               struct cutils_string ** analyzed_token_lexemes) {
+                               struct cutils_string ***analyzed_token_lexemes) {
     // FA states:
     #define FA_STATE_INITIAL 0
     #define FA_STATE_ERROR -1
@@ -56,7 +56,7 @@ void scanner_skeleton_original(const struct cutils_string *const text,
 
     int text_i = 0;
 
-    analyzed_token_lexemes = malloc(sizeof(struct cutils_string*) * 10);
+    *analyzed_token_lexemes = malloc(sizeof(struct cutils_string*) * 10);
     unsigned int analyzed_token_lexemes_size = 10;
     unsigned int analyzed_token_lexemes_n = 0;
 
@@ -104,17 +104,21 @@ void scanner_skeleton_original(const struct cutils_string *const text,
             // This is just to append a lexeme at the end of the 'cutils_string' list (very disgusting)
             // TODO create a dynamic array for this part...
             {
-                analyzed_token_lexemes[analyzed_token_lexemes_n] = cutils_string_create_from(lexeme->_s);
+                (*analyzed_token_lexemes)[analyzed_token_lexemes_n] = cutils_string_create_from(lexeme->_s);
+
                 analyzed_token_lexemes_n += 1;
                 // handle growing array's reallocation
                 if (analyzed_token_lexemes_n + 1 >= analyzed_token_lexemes_size) {
                     analyzed_token_lexemes_size *= 2;
-                    analyzed_token_lexemes = realloc(analyzed_token_lexemes, sizeof(*analyzed_token_lexemes) * analyzed_token_lexemes_size);
+                    (*analyzed_token_lexemes) = realloc((*analyzed_token_lexemes), sizeof(**analyzed_token_lexemes) * analyzed_token_lexemes_size);
                 }
             }
             // end of TODO
         }
     }
+
+    cutils_string_destroy(lexeme);
+    cutils_arrayi_destroy(state_stack);
 }
 
 void scanner_skeleton_custom() {
@@ -166,7 +170,81 @@ void scanner_skeleton_custom() {
      */
 }
 
+// for initial testing
 int main(void) {
-    printf("All works.\n");
+    // Register name accepting FA settings; page 61 of 'Engineering a compiler'
+    {
+        accepting_states[0] = 0;
+        accepting_states[1] = 0;
+        accepting_states[2] = 1;
+        accepting_states[3] = 0;
+
+        // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
+        // transition_table[4][256];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 256; j++) {
+                transition_table[i][j] = -1;
+            }
+        }
+
+        transition_table[0]['r'] = 1;
+
+        transition_table[1]['0'] = 2;
+        transition_table[1]['1'] = 2;
+        transition_table[1]['2'] = 2;
+        transition_table[1]['3'] = 2;
+        transition_table[1]['4'] = 2;
+        transition_table[1]['5'] = 2;
+        transition_table[1]['6'] = 2;
+        transition_table[1]['7'] = 2;
+        transition_table[1]['8'] = 2;
+        transition_table[1]['9'] = 2;
+
+        transition_table[2]['0'] = 3;
+        transition_table[2]['1'] = 3;
+        transition_table[2]['2'] = 3;
+        transition_table[2]['3'] = 3;
+        transition_table[2]['4'] = 3;
+        transition_table[2]['5'] = 3;
+        transition_table[2]['6'] = 3;
+        transition_table[2]['7'] = 3;
+        transition_table[2]['8'] = 3;
+        transition_table[2]['9'] = 3;
+
+        classify_lexeme[0] = 0;
+        classify_lexeme[1] = 0;
+        classify_lexeme[2] = 1;
+        classify_lexeme[3] = 0;
+
+        tokens[0] = cutils_string_create_from("invalid");
+        tokens[1] = cutils_string_create_from("register");
+    }
+
+    struct cutils_string *text = cutils_string_create_from("r2");
+
+    struct cutils_arrayi *analyzed_token_indices = cutils_arrayi_create();
+    struct cutils_string **analyzed_token_lexemes;
+
+    scanner_skeleton_original(text, analyzed_token_indices, &analyzed_token_lexemes);
+
+    printf("result of tokenizing input: %s\n", text->_s);
+
+    for (int i = 0; i < analyzed_token_indices->size; i++) {
+        int ti = cutils_arrayi_at(analyzed_token_indices, i);
+        printf("('%s' -> '%s')\n", analyzed_token_lexemes[i]->_s, tokens[ti]->_s);
+    }
+
+    // FREEING UP EVERYTHING 
+    cutils_string_destroy(text);
+
+    for (int i = 0; i < analyzed_token_indices->size; i++) {
+        cutils_string_destroy(analyzed_token_lexemes[i]);
+    }
+
+    cutils_arrayi_destroy(analyzed_token_indices);
+
+    cutils_string_destroy(tokens[0]);
+    cutils_string_destroy(tokens[1]);
+
     return 0;
 }

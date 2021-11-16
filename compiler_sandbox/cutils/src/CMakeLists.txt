@@ -1,5 +1,6 @@
-add_library(cutils cstring.c "../include/cutils/cstring.h" arrayi.c "../include/cutils/arrayi.h")
+add_library(cutils "string.c" "../include/cutils/string.h" "arrayi.c" "../include/cutils/arrayi.h")
 
+# linking <math.h> library
 target_link_libraries(cutils m)
 
 target_include_directories(cutils PUBLIC ../include)

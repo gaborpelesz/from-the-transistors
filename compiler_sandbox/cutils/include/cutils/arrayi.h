@@ -1,33 +1,29 @@
-#ifndef ARRAYI_H
-#define ARRAYI_H
+#ifndef CUTILS_ARRAYI_H
+#define CUTILS_ARRAYI_H
 
-#define ARRAYI_INITIAL_CAPACITY 12
-#define ARRAYI_GROWTH_FACTOR 2
-#define ARRAYI_SHRINK_FACTOR 2.f/3.f
+#define CUTILS_ARRAYI_INITIAL_CAPACITY 12
+#define CUTILS_ARRAYI_GROWTH_FACTOR 2
+#define CUTILS_ARRAYI_SHRINK_FACTOR 2.f/3.f
 
-typedef enum _ARRAYI_ERROR {
-    _REALLOC_ERROR = -1,
-    _REALLOC_CHANGED = 0,
-    _REALLOC_NO_CHANGE = 1
-} _ARRAYI_ERROR;
+#include "../include/cutils/common.h"
 
-struct arrayi {
+struct cutils_arrayi {
     unsigned int size;
     unsigned int _capacity;
     int* _arr;
 };
 
-struct arrayi *arrayi_create();
+struct cutils_arrayi *cutils_arrayi_create();
 
-void arrayi_destroy(struct arrayi *arr);
+void cutils_arrayi_destroy(struct cutils_arrayi *arr);
 
-void arrayi_push(struct arrayi *const arr, int val);
+void cutils_arrayi_push(struct cutils_arrayi *const arr, int val);
 
-void arrayi_empty(struct arrayi *const arr);
+void cutils_arrayi_empty(struct cutils_arrayi *const arr);
 
-int arrayi_pop(struct arrayi *const arr);
+int cutils_arrayi_pop(struct cutils_arrayi *const arr);
 
-int arrayi_at(const struct arrayi *const arr, const unsigned int i);
+int cutils_arrayi_at(const struct cutils_arrayi *const arr, const unsigned int i);
 
 /**
  * Removes an element from the array at a given index.
@@ -38,16 +34,16 @@ int arrayi_at(const struct arrayi *const arr, const unsigned int i);
  *  - arr: pointer, pointing to the struct array object
  *  -   i: index where we want to remove an element
  */
-void arrayi_remove_at(struct arrayi *const arr, unsigned int j);
+void cutils_arrayi_remove_at(struct cutils_arrayi *const arr, unsigned int j);
 
 
-struct arrayi *_arrayi_create_allocate(const unsigned int arr_size);
+struct cutils_arrayi *_cutils_arrayi_create_allocate(const unsigned int arr_size);
 
-unsigned int _arrayi_calc_capacity(unsigned int size);
+unsigned int _cutils_arrayi_calc_capacity(unsigned int size);
 
 /**
  * Growing/shrinking the internal array if necessary
  */
-_ARRAYI_ERROR _arrayi_realloc(struct arrayi * const arr, const unsigned int new_arr_size);
+_CUTILS_REALLOC_ERROR _cutils_arrayi_realloc(struct cutils_arrayi * const arr, const unsigned int new_arr_size);
 
-#endif
+#endif // CUTILS_ARRAYI_H

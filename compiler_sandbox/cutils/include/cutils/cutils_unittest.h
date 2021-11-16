@@ -7,7 +7,7 @@
  * 
  * Include in source files like this for unit testing builds:
  * 
- * cstring.c
+ * string.c
  * ------------------
  * // ...
  * 

@@ -8,12 +8,35 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+- **24/11/21**:
+    - **Currently**:
+        - scanner had some issues and was not working correctly. Fixing those issues,
+        - Experimenting further with lex to get an idea of how the scanner works from a user perspective.
+        - Scanner is ready to be generated at this point.
+    - **Next**:
+        1. start to build scanner generation framework and algorithms
+            1. comeup with lex like language to store the language's micro-syntax
+            1. build generator
+            1. build regex parser
+                - regex syntax like lex's!
+            1. test
+        1. defining C language
+            1. gather with the tokens I'll need at the C language
+                - this I can just try to copy
+            1. come up with the regular expression for the C language micro-syntax
+                - this I have to do because I'm controlling my regex language
+        1. start working on parser
+- **17/11/21**:
+    - **Currently**:
+        - scanner works with basic test
+    - **Next**:
+        - test scanner generator lex and see how our output should look like, how are we dealing with edge cases
 - **16/11/21**:
     - **Currently**:
         - make scanner.c a cmake program (make a main.c/test.c program to test it)
         - refactoring cutils/arrayi and cutils/string
     - **Next**:
-        - ...
+        - make scanner work with basic test
 - **04/11/21**:
     - **Currently**:
         - recents days did do most of the goals of *25/10/21**

@@ -8,6 +8,17 @@
 ## Progress
 Use this list to include any change in development and to keep track of progress.
 
+PINNED:
+- output of the scanner: triplets/quadruples -> (token, line, col[, lexeme])
+  - col = index of first character in the line
+  - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
+  - scanner's skeleton should implement line counter and col counter
+----
+- **25/11/21**:
+    - **Currently**:
+        - small progress on guide
+    - **Next**:
+        - follow guide of *24/11/21**
 - **24/11/21**:
     - **Currently**:
         - scanner had some issues and was not working correctly. Fixing those issues,

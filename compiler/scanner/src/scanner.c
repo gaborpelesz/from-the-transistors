@@ -23,10 +23,9 @@
 #define FALSE 0
 
 // FOR DEBUG
-int hello_counter = 0;
 void hello() {
-    hello_counter++;
-    printf("hello: %d\n", hello_counter);
+    static int hello_counter = 0;
+    printf("hello: %d\n", ++hello_counter);
 }
 // FOR DEBUG
 
@@ -41,11 +40,10 @@ void hello() {
 #define FA_STATE_BAD -1 // this gets pushed to the stack at first
 
 // TODO sizes are only imaginary for now
-// TODO make these variables' scope local to this file
-BOOL is_accepting_state[4];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
-short transition_table[4][256];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
-unsigned int classify_lexeme[4]; // indexed by accepting state -> returns index of token
-struct cutils_string* tokens[2];        // list of token names
+static BOOL is_accepting_state[4];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
+static short transition_table[4][256];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
+static unsigned int classify_lexeme[4]; // indexed by accepting state -> returns index of token
+static struct cutils_string* tokens[2];        // list of token names
 
 // --------------------------------------
 

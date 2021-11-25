@@ -1,0 +1,13 @@
+# This is an example of the language syntax description files for the compiler's scanner.
+# The syntax was mostly inspired by the lex style syntax description files, however, 
+# it is very much simplified and far not as powerful.
+
+# This is a comment
+
+# This is a TOKEN definition with a regex
+DIGIT : [0-9]
+
+# The TOKEN definitions are evaluated in order
+# Higher definitions gets more priority
+REGISTER : r[0-9]+
+IDENTIFIER : [a-zA-Z][a-zA-Z_0-9]*

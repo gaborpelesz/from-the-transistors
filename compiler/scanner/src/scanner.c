@@ -53,22 +53,22 @@ static struct cutils_string* tokens[2];        // list of token names
  * 
  * Inputs:
  *  -                              text: string of characters to analyze
- *  - (MODIFIES) analyzed_token_indices: the function creates a sequential list of the indices of tokens as it discovers them in the text
+ *  - (MODIFIES) token_classes: the function creates a sequential list of the indices of tokens as it discovers them in the text
  *  - (MODIFIES)  analyzed_token_lexeme: the function creates a sequential list of lexemes as it discovers them in the text
  * 
  * Notes:
- *  The function appends the same amount of elements to both 'analyzed_token_indices' and 'analyzed_token_lexeme'.
+ *  The function appends the same amount of elements to both 'token_classes' and 'analyzed_token_lexeme'.
  *  (i.e., the two arrays can be indexed with the same index to retreive the lexeme and its correspondent token).
  */
 void scanner_skeleton_original(const struct cutils_string *const text,
-                               struct cutils_arrayi * const analyzed_token_indices,
-                               struct cutils_string ***analyzed_token_lexemes) {
+                               struct cutils_arrayi * const token_classes,
+                               struct cutils_string ***token_lexemes) {
     
     int text_i = 0;
 
-    *analyzed_token_lexemes = malloc(sizeof(struct cutils_string*) * 10);
-    unsigned int analyzed_token_lexemes_size = 10;
-    unsigned int analyzed_token_lexemes_n = 0;
+    *token_lexemes = malloc(sizeof(struct cutils_string*) * 10);
+    unsigned int token_lexemes_size = 10;
+    unsigned int token_lexemes_n = 0;
 
     struct cutils_string *lexeme = cutils_string_create();
     struct cutils_arrayi *state_stack = cutils_arrayi_create();
@@ -131,19 +131,20 @@ void scanner_skeleton_original(const struct cutils_string *const text,
             text_i += 1; // going to next char as we have already been here
         }
 
-        cutils_arrayi_push(analyzed_token_indices, lexeme_class);
+        cutils_arrayi_push(token_classes, lexeme_class);
 
         // This is just to append a lexeme at the end of the 'cutils_string' list (very disgusting)
         // TODO create a dynamic array for this part...
         {
-            (*analyzed_token_lexemes)[analyzed_token_lexemes_n] = cutils_string_create_from(lexeme->_s);
-
-            analyzed_token_lexemes_n += 1;
             // handle growing array's reallocation
-            if (analyzed_token_lexemes_n + 1 >= analyzed_token_lexemes_size) {
-                analyzed_token_lexemes_size *= 2;
-                (*analyzed_token_lexemes) = realloc((*analyzed_token_lexemes), sizeof(**analyzed_token_lexemes) * analyzed_token_lexemes_size);
+            if (token_lexemes_n + 1 >= token_lexemes_size) {
+                token_lexemes_size *= 2;
+                (*token_lexemes) = realloc((*token_lexemes), sizeof(**token_lexemes) * token_lexemes_size);
             }
+            
+            (*token_lexemes)[token_lexemes_n] = cutils_string_create_from(lexeme->_s);
+
+            token_lexemes_n += 1;
         }
         // end of TODO
     }
@@ -262,26 +263,26 @@ int main(void) {
     //struct cutils_string *text = cutils_string_create_from("r");
 
 
-    struct cutils_arrayi *analyzed_token_indices = cutils_arrayi_create();
-    struct cutils_string **analyzed_token_lexemes;
+    struct cutils_arrayi *token_classes = cutils_arrayi_create();
+    struct cutils_string **token_lexemes;
 
-    scanner_skeleton_original(text, analyzed_token_indices, &analyzed_token_lexemes);
+    scanner_skeleton_original(text, token_classes, &token_lexemes);
 
     printf("result of tokenizing input: %s\n", text->_s);
 
-    for (int i = 0; i < analyzed_token_indices->size; i++) {
-        int ti = cutils_arrayi_at(analyzed_token_indices, i);
-        printf("('%s' -> '%s')\n", analyzed_token_lexemes[i]->_s, tokens[ti]->_s);
+    for (int i = 0; i < token_classes->size; i++) {
+        int ti = cutils_arrayi_at(token_classes, i);
+        printf("('%s' -> '%s')\n", token_lexemes[i]->_s, tokens[ti]->_s);
     }
 
     // FREEING UP EVERYTHING 
     cutils_string_destroy(text);
 
-    for (int i = 0; i < analyzed_token_indices->size; i++) {
-        cutils_string_destroy(analyzed_token_lexemes[i]);
+    for (int i = 0; i < token_classes->size; i++) {
+        cutils_string_destroy(token_lexemes[i]);
     }
 
-    cutils_arrayi_destroy(analyzed_token_indices);
+    cutils_arrayi_destroy(token_classes);
 
     cutils_string_destroy(tokens[0]);
     cutils_string_destroy(tokens[1]);

@@ -14,6 +14,16 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **02/12/21**:
+    - **Currently**:
+        - language is ready
+        - progress on regex scanner
+    - **Next**:
+        - build regex to nfa
+            - scanner: regex -> token
+            - parser: token -> execution graph
+            - nfa builder: execution graph -> nfa
+        - folow guide of *24/11/21**
 - **25/11/21**:
     - **Currently**:
         - small progress on guide

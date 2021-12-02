@@ -34,6 +34,7 @@ Definition of the regular expression language:
 - match any whitespace character (\t, \r, \n, spaces): a\sb -> \s
 - special character arithmetic: (a|b)* == a*b*
 - precedence: parentheses ( (a|b)* ), closure (a*), concatenation (ab), alteration (a|b)
-- special characters: ", \\, |, (, ), *, +, ?, ., [, ], \s, \t, \r, \n
+- special characters: ", \\, |, (, ), *, +, ?, ., [, ], \s, \t, \r, \n, \e
 - special character handling:
   - place things inside quotes: "something with | (special characters)" will match exactly what's inside
+  - to have a quotation mark, use "\\"" or \\"

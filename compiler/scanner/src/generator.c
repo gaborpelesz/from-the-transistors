@@ -21,7 +21,7 @@
 #define SCANNER_REGEX_TOKEN_OP_CLOSURE         6 // *
 #define SCANNER_REGEX_TOKEN_OP_POSCLOSURE      7 // +
 #define SCANNER_REGEX_TOKEN_OP_QUESTION_MARK   8 // ?
-#define SCANNER_REGEX_TOKEN_RANGE           9 // [0-9]
+#define SCANNER_REGEX_TOKEN_RANGE              9 // [0-9]
 #define SCANNER_REGEX_TOKEN_WILDCARD          10 // .
 #define SCANNER_REGEX_TOKEN_EMPTYSTR          11 // \e
 #define SCANNER_REGEX_TOKEN_TAB               12 // \t
@@ -31,26 +31,38 @@
 
 static const struct cutils_string* regex_token_map[6]; 
 
-void append_to_string_array(struct cutils_string ***strarr,
+void append_to_string_array(struct cutils_string ***strarr, // pointer to an array of cutils_string
+                            unsigned int *capacity,
                             unsigned int *size,
-                            unsigned int *n,
                             struct cutils_string *newstr) {
     // handle growing array's reallocation
-    if (*n + 1 >= *size) {
-        *size *= 2;
-        (*strarr) = realloc((*strarr), sizeof(**strarr) * *size);
+    if (*size + 1 >= *capacity) {
+        *capacity *= 2;
+        (*strarr) = realloc((*strarr), sizeof(**strarr) * *capacity);
     }
 
-    (*strarr)[*n] = cutils_string_create_from(newstr->_s);
+    (*strarr)[*size] = cutils_string_create_from(newstr->_s);
 
-    *n += 1;
+    *size += 1;
+}
+
+void append_literal_ifany(struct cutils_string *literal,
+                          struct cutils_arrayi *tokens,
+                          struct cutils_string ***lexemes,
+                          unsigned int *lexemes_capacity,
+                          unsigned int *lexemes_size) {
+    if (literal->size > 0) {
+        cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_LITERAL);
+        append_to_string_array(lexemes, lexemes_capacity, lexemes_size, literal);
+        cutils_arrayi_empty(literal);   
+    }
 }
 
 typedef int REGEX_SCANNER_STATUS;
 REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
                                    struct cutils_arrayi *tokens,
                                    struct cutils_string ***lexemes,
-                                   unsigned int *lexemes_size,
+                                   unsigned int *lexemes_capacity,
                                    unsigned int *lexemes_n) {
 
     printf("trying regex: %s\n", rgx->_s);
@@ -66,26 +78,66 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
     for (unsigned int i = 0; i < rgx->size; i++) {
         char current_char = cutils_string_at(rgx, i);
 
-        if (current_char == '"') {
+        // dealing with possible special characters
+        if (current_char == '\\') {
+            // check if peak is possible
+            if (i+1 == rgx->size) {
+                retval = 1;
+                break;
+            }
+
+            // peak is possible,
+            char peaked = cutils_string_at(rgx, i+1);
+
+            // now check if we are dealing with quotes
+            if (peaked == '"') {
+                // escape quote detected -> considering quote as a literal
+                cutils_string_append_chr(literal, '"');
+                i = i+1; // we've already dealt with the next char
+            }
+            // backslash is always a special char even inside quoted literals
+            // that means to use backslash as a literal, you have to escape it
+            else if (peaked == '\\') {
+                cutils_string_append_chr(literal, '\\'); 
+                i = i+1; // we've already dealt with the next char
+            }
+            // only consider other special characters
+            // if they aren't inside quotes (i.e., aren't taken as literals)
+            else if (!b_is_quote_literal) {
+                // handling a special character outside of a literal
+
+                // any whitespace
+                if (peaked == 's') {
+                    
+                }
+            }
+            // else taking backslash as a literal without considering peaked
+            else {
+                cutils_string_append_chr(literal, '\\');
+            }
+        }
+        else if (current_char == '"') {
             b_is_quote_literal = !b_is_quote_literal;
 
             //                         current_char __
             //                                        | 
             //                                        v
             // if a literal ended: "this was a literal"
-            if (!b_is_quote_literal) {
-                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_LITERAL);
-
-                // append to lexemes
-                append_to_string_array(lexemes, lexemes_size, lexemes_n, literal);
-
-                cutils_string_empty(literal);
-            }
+            // 
+            // it still doesn't need to be handled specially
+            // it will be implicitly handled because we didn't include
+            // the opening and closing quotes inside the literal
+            // so we can just continue appending to it until we
+            // stumble upon a special character
         }
-
         else if (!b_is_quote_literal) {
+            // this also handles ']'
             if (current_char == '[') {
-                // ensure that there is enough characters left for a range definition
+                // appending accumulated literal if there was any
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+
+
+                // ensure that there are enough characters left for a range definition
                 // a range is always 5 characters: [0-9] -> [<from>-<to>]
                 if (i+4 >= rgx->size) {
                     printf("Unfinished range definition in %s -> '%s'\n", rgx->_s, rgx->_s + (rgx->size - i));
@@ -102,26 +154,69 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
                 cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_RANGE);
 
                 char range[] = {'[', cutils_string_at(rgx, i+1), '-', cutils_string_at(rgx, i+3), ']', '\0'};
-                append_to_string_array(lexemes, lexemes_size, lexemes_n, range);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, range);
 
                 i += 4;
             }
-
-            switch (current_char) {
-                case '(':
-                    printf("got a '('\n");
-                    break;
+            // already handled by the opening bracket
+            else if (current_char == ']') {
+                printf("Unexpected closing bracket in %s at %d. char", rgx->_s, i);
+                retval = 1;
+                break;
             }
-        } else { // current char is inside quotes -> handling it as literal
 
+            else if (current_char == '(') {
+                // appending accumulated literal if there was any
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                parenthesis_cnt += 1;
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_PARENTHESIS_OPEN);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "(");
+            }
+            else if (current_char == ')') {
+                // appending accumulated literal if there was any
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                parenthesis_cnt += 1;
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_PARENTHESIS_CLOSE);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, ")");
+            }
+            
+            else if (current_char == '|') {
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_ALTERATION);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "|");
+            }
+
+            else if (current_char == '*') {
+            }
+
+            else if (current_char == '+') {
+            }
+
+            else if (current_char == '?') {
+            }
+
+            else if (current_char == '.') {
+            }
+
+            // no special character, append to the literal
+            else {
+                cutils_string_append_chr(literal, current_char);
+            }
+        }
+        else { // current char is inside quotes -> handling it as literal
+            cutils_string_append_chr(literal, current_char);
         }
     }
+
     // scanning...
     // ... add characters to a lexeme until we find a special character. The token for the lexeme: concatenated_chars
     // ... every string that's inside two quotes should be a concatenated_chars immediately
     // ... if the string inside two quotes contains a quote character it should be escaped with a backslash "\"this\"" matches -> "this"
 
     if (retval == 0) {
+        // if there was no error, we might have some literals left to append
+        append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+
         if (parenthesis_cnt != 0) {
             if (parenthesis_cnt < 0) {
                 printf("Unmatched parenthesis inside regex: too much closing ')'\n");

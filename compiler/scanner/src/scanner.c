@@ -57,7 +57,7 @@ static struct cutils_string* tokens[2];        // list of token names
  *  - (MODIFIES)  analyzed_token_lexeme: the function creates a sequential list of lexemes as it discovers them in the text
  * 
  * Notes:
- *  The function appends the same amount of elements to both 'token_classes' and 'analyzed_token_lexeme'.
+ *  The function appends the same amount of elements to both 'token_classes' and 'token_lexemes'.
  *  (i.e., the two arrays can be indexed with the same index to retreive the lexeme and its correspondent token).
  */
 void scanner_skeleton_original(const struct cutils_string *const text,

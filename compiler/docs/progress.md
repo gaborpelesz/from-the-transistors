@@ -14,6 +14,12 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **05/12/21**:
+    - **Currently**:
+        - regex scanner is built, it works for the initial tests, however, more testing definitely needed.
+    - **Next**:
+        - test regex scanner, fix issues if there's any
+        - build parser: scanner tokens to precedence graph
 - **02/12/21**:
     - **Currently**:
         - language is ready

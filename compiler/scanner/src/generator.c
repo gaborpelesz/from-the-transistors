@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <cutils/string.h>
 #include <cutils/arrayi.h>
 
@@ -24,24 +25,21 @@
 #define SCANNER_REGEX_TOKEN_RANGE              9 // [0-9]
 #define SCANNER_REGEX_TOKEN_WILDCARD          10 // .
 #define SCANNER_REGEX_TOKEN_EMPTYSTR          11 // \e
-#define SCANNER_REGEX_TOKEN_TAB               12 // \t
-#define SCANNER_REGEX_TOKEN_CARRIAGER         13 // \r
-#define SCANNER_REGEX_TOKEN_NEWLINE           14 // \n
-#define SCANNER_REGEX_TOKEN_ANYWHITESPACE     15 // \s
+#define SCANNER_REGEX_TOKEN_ANYWHITESPACE     12 // \s
 
-static const struct cutils_string* regex_token_map[6]; 
+static const struct cutils_string* regex_token_map[13];
 
 void append_to_string_array(struct cutils_string ***strarr, // pointer to an array of cutils_string
                             unsigned int *capacity,
                             unsigned int *size,
-                            struct cutils_string *newstr) {
+                            char *newstr) {
     // handle growing array's reallocation
     if (*size + 1 >= *capacity) {
         *capacity *= 2;
         (*strarr) = realloc((*strarr), sizeof(**strarr) * *capacity);
     }
 
-    (*strarr)[*size] = cutils_string_create_from(newstr->_s);
+    (*strarr)[*size] = cutils_string_create_from(newstr);
 
     *size += 1;
 }
@@ -53,8 +51,8 @@ void append_literal_ifany(struct cutils_string *literal,
                           unsigned int *lexemes_size) {
     if (literal->size > 0) {
         cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_LITERAL);
-        append_to_string_array(lexemes, lexemes_capacity, lexemes_size, literal);
-        cutils_arrayi_empty(literal);   
+        append_to_string_array(lexemes, lexemes_capacity, lexemes_size, literal->_s);
+        cutils_string_empty(literal);   
     }
 }
 
@@ -108,7 +106,29 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
 
                 // any whitespace
                 if (peaked == 's') {
-                    
+                    append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                    cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_ANYWHITESPACE);
+                    append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "\\s");
+                }
+                // tab is just a literal
+                else if (peaked == 't') {
+                    cutils_string_append_chr(literal, '\t');
+
+                }
+                // carriage return is just a literal
+                else if (peaked == 'r') {
+                    cutils_string_append_chr(literal, '\r');
+
+                }
+                // newline is just a literal
+                else if (peaked == 'n') {
+                    cutils_string_append_chr(literal, '\n');
+                }
+                // empty string
+                else if (peaked == 'e') {
+                    append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                    cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_EMPTYSTR);
+                    append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "\\e");
                 }
             }
             // else taking backslash as a literal without considering peaked
@@ -159,6 +179,7 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
                 i += 4;
             }
             // already handled by the opening bracket
+            // so it is unexpected to stumble upon a closing bracket
             else if (current_char == ']') {
                 printf("Unexpected closing bracket in %s at %d. char", rgx->_s, i);
                 retval = 1;
@@ -175,7 +196,7 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
             else if (current_char == ')') {
                 // appending accumulated literal if there was any
                 append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
-                parenthesis_cnt += 1;
+                parenthesis_cnt -= 1;
                 cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_PARENTHESIS_CLOSE);
                 append_to_string_array(lexemes, lexemes_capacity, lexemes_n, ")");
             }
@@ -187,15 +208,27 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
             }
 
             else if (current_char == '*') {
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_CLOSURE);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "*");
             }
 
             else if (current_char == '+') {
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_POSCLOSURE);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "+");
             }
 
             else if (current_char == '?') {
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_QUESTION_MARK);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "?");
             }
 
             else if (current_char == '.') {
+                append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_WILDCARD);
+                append_to_string_array(lexemes, lexemes_capacity, lexemes_n, ".");
             }
 
             // no special character, append to the literal
@@ -242,7 +275,19 @@ REGEX_SCANNER_STATUS regex_scanner(const struct cutils_string * const rgx,
 
 // for testing
 int main(void) {
-    regex_token_map[0] = cutils_string_create_from("(");
+    regex_token_map[0] = cutils_string_create_from("LITERAL");
+    regex_token_map[1] = cutils_string_create_from("PARENTHESIS_OPEN");
+    regex_token_map[2] = cutils_string_create_from("PARENTHESIS_CLOSE");
+    regex_token_map[3] = cutils_string_create_from("BRACKET_OPEN");
+    regex_token_map[4] = cutils_string_create_from("BRACKET_CLOSE");
+    regex_token_map[5] = cutils_string_create_from("ALTERATION");
+    regex_token_map[6] = cutils_string_create_from("CLOSURE");
+    regex_token_map[7] = cutils_string_create_from("POS_CLOSURE");
+    regex_token_map[8] = cutils_string_create_from("OP_ONEORMORE");
+    regex_token_map[9] = cutils_string_create_from("RANGE");
+    regex_token_map[10] = cutils_string_create_from("WILDCARD");
+    regex_token_map[11] = cutils_string_create_from("EMPTYSTR");
+    regex_token_map[12] = cutils_string_create_from("ANYWHITESPACE");
 
     struct cutils_string *rgx = cutils_string_create_from("(ab|b)*");
     struct cutils_arrayi *tokens = cutils_arrayi_create();
@@ -252,7 +297,16 @@ int main(void) {
     unsigned int lexemes_size = 10;
     unsigned int lexemes_n = 0;
 
-    regex_scanner(rgx, tokens, &lexemes, &lexemes_size, &lexemes_n);
+    int status = regex_scanner(rgx, tokens, &lexemes, &lexemes_size, &lexemes_n);
+    printf("status: %d\n", status);
+
+    printf("Tokens: %d, Lexemes: %d\n", tokens->size, lexemes_n);
+
+    // print lexemes with tokens
+    for (int i = 0; i < tokens->size; i++) {
+        int ti = cutils_arrayi_at(tokens, i);
+        printf("('%s' -> '%s')\n", lexemes[i]->_s, regex_token_map[ti]->_s);
+    }
 
     // deconstruct
     cutils_string_destroy(rgx);

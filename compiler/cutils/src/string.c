@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef UNIT_TESTING
+#ifdef CUTILS_UNIT_TESTING
     #include <cutils/cutils_unittest.h>
-#endif // UNIT_TESTING
+#endif // CUTILS_UNIT_TESTING
 
 static inline unsigned int _cutils_string_chrlst_len(const char *const chrlst) {
     unsigned int size = 0;

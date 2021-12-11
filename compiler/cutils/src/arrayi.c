@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#ifdef UNIT_TESTING
+#ifdef CUTILS_UNIT_TESTING
     #include <cutils/cutils_unittest.h>
-#endif // UNIT_TESTING
+#endif // CUTILS_UNIT_TESTING
 
 struct cutils_arrayi *cutils_arrayi_create() {
     return _cutils_arrayi_create_allocate(0);

@@ -9,7 +9,8 @@ option(BUILD_TESTING "Build for unittesting." OFF)
 # TESTING
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     include(CTest)
-    add_compile_definitions(COMPILER_UNIT_TESTING=1)
+    include(cmake/FetchCMocka.cmake)
+    add_compile_definitions(UNIT_TESTING=1 COMPILER_UNIT_TESTING=1)
 endif()
 
 # add utility library

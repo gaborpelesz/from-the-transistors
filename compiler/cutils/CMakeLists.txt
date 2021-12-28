@@ -6,12 +6,15 @@ project(CUtils VERSION 0.0.1
                DESCRIPTION "C utilities to be used in other projects"
                LANGUAGES C)
 
+set(CMAKE_C_STANDARD 11)
+
 option(BUILD_TESTING "Build for unittesting." OFF)
 
 # TESTING
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     include(CTest)
-    add_compile_definitions(CUTILS_UNIT_TESTING=1)
+    include(cmake/FetchCMocka.cmake)
+    add_compile_definitions(UNIT_TESTING=1 CUTILS_UNIT_TESTING=1)
 endif()
 
 add_subdirectory(src)

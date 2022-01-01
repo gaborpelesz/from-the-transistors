@@ -11,14 +11,14 @@ set(CMAKE_C_STANDARD 11)
 option(BUILD_TESTING "Build for unittesting." OFF)
 
 # TESTING
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+if(BUILD_TESTING)
     include(CTest)
     include(cmake/FetchCMocka.cmake)
-    add_compile_definitions(UNIT_TESTING=1 CUTILS_UNIT_TESTING=1)
+    add_compile_definitions(UNIT_TESTING=1)
 endif()
 
 add_subdirectory(src)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

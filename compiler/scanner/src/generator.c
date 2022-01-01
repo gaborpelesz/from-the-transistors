@@ -1,5 +1,9 @@
 #include <scanner_utils/regex_scanner.h>
 
+#ifdef UNIT_TESTING
+    #include <cutils/cutils_unittest.h>
+#endif
+
 // for testing
 int main(void) {
     // REGEX TO BE TESTED

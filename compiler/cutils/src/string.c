@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef CUTILS_UNIT_TESTING
+#ifdef UNIT_TESTING
     #include <cutils/cutils_unittest.h>
 #endif // CUTILS_UNIT_TESTING
 

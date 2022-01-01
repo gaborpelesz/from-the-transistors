@@ -17,6 +17,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef UNIT_TESTING
+    #include <cutils/cutils_unittest.h>
+#endif
+
 // UTIL DEFINITIONS
 #define BOOL unsigned char
 #define TRUE 1

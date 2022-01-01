@@ -1,5 +1,9 @@
 #include <scanner_utils/regex_scanner.h>
 
+#ifdef UNIT_TESTING
+    #include <cutils/cutils_unittest.h>
+#endif
+
 const char* scanner_regex_get_token_name(const unsigned int token) {
     if (token > 12) {
         return "";
@@ -213,7 +217,7 @@ REGEX_SCANNER_STATUS scanner_regex_analyze(const struct cutils_string * const rg
 
             else if (current_char == '?') {
                 append_literal_ifany(literal, tokens, lexemes, lexemes_capacity, lexemes_n);
-                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_QUESTION_MARK);
+                cutils_arrayi_push(tokens, SCANNER_REGEX_TOKEN_OP_ZERO_OR_ONE);
                 append_to_string_array(lexemes, lexemes_capacity, lexemes_n, "?");
             }
 

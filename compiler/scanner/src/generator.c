@@ -4,16 +4,19 @@
 int main(void) {
     // REGEX TO BE TESTED
     //struct cutils_string *rgx = cutils_string_create_from("(ab|b)*");
-    struct cutils_string *rgx = cutils_string_create_from("(a(b\\\"|b+\\\"))?a*[0-9].v\\n");
+    const char *test_rgx = "(a\"ab\\\"|cb\"|(asdf*b?))[0-9]\\s\\t\n end+";
+    struct cutils_string *rgx = cutils_string_create_from(test_rgx);
+    // struct cutils_string *rgx = cutils_string_create_from("(a(b\\\"|b+\\\"))?a*[0-9].v\\n");
 
     struct cutils_arrayi *tokens = cutils_arrayi_create();
 
     struct cutils_string **lexemes;
     lexemes = malloc(sizeof(struct cutils_string*) * 10);
-    unsigned int lexemes_size = 10;
+    unsigned int lexemes_capacity = 10;
     unsigned int lexemes_n = 0;
 
-    int status = scanner_regex_analyze(rgx, tokens, &lexemes, &lexemes_size, &lexemes_n);
+    printf("scanning regex: %s\n", rgx->_s);
+    int status = scanner_regex_analyze(rgx, tokens, &lexemes, &lexemes_capacity, &lexemes_n);
     printf("status: %d\n", status);
 
     printf("Tokens: %d, Lexemes: %d\n", tokens->size, lexemes_n);

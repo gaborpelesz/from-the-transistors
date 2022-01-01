@@ -10,4 +10,4 @@ DIGIT : [0-9]
 # The TOKEN definitions are evaluated in order
 # Higher definitions gets more priority
 REGISTER : r[0-9]+
-IDENTIFIER : [a-zA-Z][a-zA-Z_0-9]*
+IDENTIFIER : ([a-z]|[A-Z])([a-z]|[A-Z]|[0-9])*

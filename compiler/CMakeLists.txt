@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(Scanner VERSION 0.0.1
+project(Compiler VERSION 0.0.1
                DESCRIPTION "Scanner (lexical analyzer) generator"
                LANGUAGES C)
 

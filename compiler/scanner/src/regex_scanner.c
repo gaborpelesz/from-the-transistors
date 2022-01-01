@@ -55,9 +55,6 @@ REGEX_SCANNER_STATUS scanner_regex_analyze(const struct cutils_string * const rg
                                    struct cutils_string ***lexemes,
                                    unsigned int *lexemes_capacity,
                                    unsigned int *lexemes_n) {
-
-    printf("scanning regex: %s\n", rgx->_s);
-
     int retval = 0;
 
     int parenthesis_cnt = 0;

@@ -8,7 +8,7 @@
 
 #include <cutils/arrayi.h>
 #include <cutils/string.h>
-#include <scanner_utils/regex_scanner.h>
+#include <scanner_utils/regex_analyzer.h>
 
 static void test_scanner_regex_analyze_1(void **state) {
     // input
@@ -43,6 +43,8 @@ static void test_scanner_regex_analyze_1(void **state) {
         assert_int_equal(cutils_arrayi_at(tokens, 3), SCANNER_REGEX_TOKEN_LITERAL);
         assert_int_equal(cutils_arrayi_at(tokens, 4), SCANNER_REGEX_TOKEN_PARENTHESIS_CLOSE);
         assert_int_equal(cutils_arrayi_at(tokens, 5), SCANNER_REGEX_TOKEN_OP_CLOSURE);
+
+        assert_int_equal(status, 0);
     }
 
     // clean-up
@@ -106,6 +108,8 @@ static void test_scanner_regex_analyze_2(void **state) {
         assert_int_equal(cutils_arrayi_at(tokens, 11), SCANNER_REGEX_TOKEN_ANYWHITESPACE);
         assert_int_equal(cutils_arrayi_at(tokens, 12), SCANNER_REGEX_TOKEN_LITERAL);
         assert_int_equal(cutils_arrayi_at(tokens, 13), SCANNER_REGEX_TOKEN_OP_POSCLOSURE);
+
+        assert_int_equal(status, 0);
     }
 
     // clean-up
@@ -144,6 +148,8 @@ static void test_scanner_regex_analyze_X(void **state) {
         assert_string_equal(lexemes[0]->_s, "");
         
         assert_int_equal(cutils_arrayi_at(tokens, 0), SCANNER_REGEX_TOKEN_LITERAL);
+
+        assert_int_equal(status, 0);
     }
 
     // clean-up

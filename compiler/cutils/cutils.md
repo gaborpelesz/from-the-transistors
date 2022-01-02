@@ -4,7 +4,7 @@ My utility data structures and useful tools.
 
 Build tests with:
 ```bash
-cmake .. -DBUILD_TESTING=ON && cmake --build . && 
+cmake .. -DBUILD_TESTING=ON && cmake --build . 
 ```
 
 Run unit tests after build:

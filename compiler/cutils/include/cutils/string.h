@@ -55,4 +55,10 @@ char cutils_string_at(const struct cutils_string *const str, const unsigned int 
 
 char cutils_string_pop(struct cutils_string *const str);
 
+/* MISC FUNCTION */
+
+int cutils_string_is_alphanum_c(char c);
+
+/* --------------- */
+
 #endif // CUTILS_STRING_H

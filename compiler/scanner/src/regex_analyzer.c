@@ -1,4 +1,4 @@
-#include <scanner_utils/regex_scanner.h>
+#include <scanner_utils/regex_analyzer.h>
 
 #ifdef UNIT_TESTING
     #include <cutils/cutils_unittest.h>
@@ -54,7 +54,7 @@ static void append_literal_ifany(struct cutils_string *literal,
     }
 }
 
-REGEX_SCANNER_STATUS scanner_regex_analyze(const struct cutils_string * const rgx,
+SCANNER_REGEX_STATUS scanner_regex_analyze(const struct cutils_string * const rgx,
                                    struct cutils_arrayi *tokens,
                                    struct cutils_string ***lexemes,
                                    unsigned int *lexemes_capacity,

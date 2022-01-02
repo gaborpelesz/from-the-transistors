@@ -167,3 +167,12 @@ void cutils_string_append_chr(struct cutils_string *const dst, const char ch) {
         dst->_s[new_size] = '\0';
     }
 }
+
+int cutils_string_is_alphanum_c(char c) {
+    // a-z: 97-122   | most common
+    // 0-9: 48-57    |
+    // A-Z: 65-90    v least common
+    return 97 <= c && c <= 122 ||
+           48 <= c && c <= 57 ||
+           65 <= c && c <= 90;
+}

@@ -192,7 +192,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 // appending a new concatenation to the new alteration and switching to it
                 struct scanner_regex_tree_node *new_conc = 
                     scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_CONC, '.');
-                scanner_regex_tree_aadd_child(alt, new_conc);
+                scanner_regex_tree_add_child(alt, new_conc);
                 conc = new_conc;
             }
             else if (current_char == ')') {
@@ -212,7 +212,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
             else if (current_char == '|') {
                 struct scanner_regex_tree_node *new_conc = 
                     scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_CONC, '.');
-                scanner_regex_tree_aadd_child(alt, new_conc);     
+                scanner_regex_tree_add_child(alt, new_conc);     
             }
 
             else if (current_char == '*' ||
@@ -233,7 +233,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 );
             }
 
-            // no special character, append to the literal
+            // no special character, append as a literal
             else {
                 scanner_regex_tree_add_child(
                     conc, scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_LITERAL, current_char)
@@ -246,11 +246,6 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
             );
         }
     }
-
-    // scanning...
-    // ... add characters to a lexeme until we find a special character. The token for the lexeme: concatenated_chars
-    // ... every string that's inside two quotes should be a concatenated_chars immediately
-    // ... if the string inside two quotes contains a quote character it should be escaped with a backslash "\"this\"" matches -> "this"
 
     if (ret.type == SCANNER_REGEX_SUCCESS && parenthesis_cnt > 0) {
             ret.type = SCANNER_REGEX_ERROR_OPENINGP;
@@ -271,7 +266,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
     }
 
     // Minimize the tree so that single alterations and such aren't present
-    scanner_regex_tree_minimize(root);
+    scanner_regex_tree_minimize(&root);
 
     return ret;
 }

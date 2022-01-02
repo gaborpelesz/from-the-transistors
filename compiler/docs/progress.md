@@ -14,6 +14,12 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **02/01/21 (plus some earlier days)**:
+    - **Today**:
+        - Instead of the separate regex scanner and parser I've implemented a one-pass algorithm to do both and create a regex evaluation graph on the go.
+        - I've implemented the Tree struct and corresponding functions and also created unit tests (all pass)
+    - **Next**:
+        - implement unit tests for the parser and correct behavior (currently not working properly -> segmentation fault)
 - **05/12/21**:
     - **Currently**:
         - regex scanner is built, it works for the initial tests, however, more testing definitely needed.

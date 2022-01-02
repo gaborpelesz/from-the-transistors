@@ -18,6 +18,8 @@ struct scanner_regex_tree_node {
     enum SCANNER_REGEX_TREE_NODE_TYPE type;
     char literal;
     struct scanner_regex_tree_node *parent;
+    unsigned short children_n;
+    unsigned short _children_capacity;
     struct scanner_regex_tree_node **children; // TODO it would be nice to have a void* dynamic array
 };
 
@@ -29,19 +31,23 @@ struct scanner_regex_tree_node *scanner_regex_tree_create(
                                     char literal);
 
 /**
+ * Destroy tree from root.
  * 
+ * The function implements a destruction by recursive post-order traversal.
  */
 void scanner_regex_tree_destroy(struct scanner_regex_tree_node *root);
 
 /**
  * 
  */
-void scanner_regex_tree_minimize(struct scanner_regex_tree_node *node);
-
+void scanner_regex_tree_add_child(struct scanner_regex_tree_node * const parent,
+                                  struct scanner_regex_tree_node * child);
+                                  
 /**
  * 
  */
-void scanner_regex_tree_add_child(struct scanner_regex_tree_node * const root,
-                                  struct scanner_regex_tree_node * child);
+void scanner_regex_tree_minimize(struct scanner_regex_tree_node **root);
+
+void scanner_regex_tree_print(const struct scanner_regex_tree_node * const root);
 
 #endif // SCANNER_REGEX_TREE_H_

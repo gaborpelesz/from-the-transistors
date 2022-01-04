@@ -7,7 +7,7 @@
 #include <scanner_utils/regex_tree.h>
 
 struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * const rgx,
-                                                struct scanner_regex_tree_node *root) {
+                                                struct scanner_regex_tree_node **root) {
     struct SCANNER_REGEX_STATUS ret;
     ret.type = SCANNER_REGEX_SUCCESS;
     ret.error_index = -1;
@@ -133,7 +133,6 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 // ensure that there are enough characters left for a range definition
                 // a range is always 5 characters: [0-9] -> [<from>-<to>]
                 if (i+4 >= rgx->size) {
-                    //printf("Unfinished range definition in %s -> '%s'\n", rgx->_s, rgx->_s + (rgx->size - i));
                     ret.type = SCANNER_REGEX_ERROR_RANGE;
                     ret.error_index = i;
                     ret.error_msg = "Unfinished range definition...";
@@ -141,8 +140,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 }
                 // checking if the range definition is correct
                 else if (cutils_string_at(rgx, i+2) != '-' || cutils_string_at(rgx, i+4) != ']' ||
-                         cutils_string_is_alphanum_c(cutils_string_at(rgx, i+1)) || cutils_string_is_alphanum_c(cutils_string_at(rgx, i+3))) {
-                    //printf("Incorrect range definition in %s -> '%s'\n", rgx->_s, rgx->_s + 4);
+                         !cutils_string_is_alphanum_c(cutils_string_at(rgx, i+1)) || !cutils_string_is_alphanum_c(cutils_string_at(rgx, i+3))) {
                     ret.type = SCANNER_REGEX_ERROR_RANGE;
                     ret.error_index = i;
                     ret.error_msg = "Incorrect range definition...";
@@ -206,13 +204,14 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 }
 
                 alt = alt->parent->parent;
-                conc = alt->children[-1]; // TODO retreive last element
+                conc = alt->children[alt->children_n-1];
             }
             
             else if (current_char == '|') {
                 struct scanner_regex_tree_node *new_conc = 
                     scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_CONC, '.');
                 scanner_regex_tree_add_child(alt, new_conc);     
+                conc = new_conc;
             }
 
             else if (current_char == '*' ||
@@ -221,10 +220,10 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 struct scanner_regex_tree_node * clos =
                     scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_CLOS, current_char);
 
-                // TODO retreive last element
-                struct scanner_regex_tree_node *last = conc->children[-1];
+                struct scanner_regex_tree_node *last = conc->children[conc->children_n-1];
                 scanner_regex_tree_add_child(clos, last);
-                conc->children[-1] = clos;
+                conc->children[conc->children_n-1] = clos;
+                clos->parent = conc;
             }
 
             else if (current_char == '.') {
@@ -245,7 +244,7 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
                 conc, scanner_regex_tree_create(SCANNER_REGEX_TREE_NODE_LITERAL, current_char)
             );
         }
-    }
+    } // for char in regex
 
     if (ret.type == SCANNER_REGEX_SUCCESS && parenthesis_cnt > 0) {
             ret.type = SCANNER_REGEX_ERROR_OPENINGP;
@@ -254,19 +253,20 @@ struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * con
     }
 
     // Find the root of the tree
-    root = alt;
-    while (root->parent != NULL) {
-        root = root->parent;
+    while (alt->parent != NULL) {
+        alt = alt->parent;
     }
+    *root = alt;
 
     // We destroy the tree on any error and set root to NULL;
     if (ret.type != SCANNER_REGEX_SUCCESS) {
-        scanner_regex_tree_destroy(root);
-        root = NULL;
+        scanner_regex_tree_destroy(*root);
+        *root = NULL;
+        return ret;
     }
 
     // Minimize the tree so that single alterations and such aren't present
-    scanner_regex_tree_minimize(&root);
+    scanner_regex_tree_minimize(root);
 
     return ret;
 }

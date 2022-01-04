@@ -25,7 +25,7 @@ struct scanner_regex_tree_node *scanner_regex_tree_create(
     return n;
 }
 
-static void _tree_recursive_destroy(struct scanner_regex_tree_node *n) {
+static void _tree_recursive_destroy(struct scanner_regex_tree_node *n, int j, int depth) {
     if (n->children_n == 0) {
         free(n->children);
         return;
@@ -33,7 +33,7 @@ static void _tree_recursive_destroy(struct scanner_regex_tree_node *n) {
 
     // destroy all elements with recursive post-order traversal
     for (unsigned short i = 0; i < n->children_n; i++) {
-        _tree_recursive_destroy(n->children[i]);
+        _tree_recursive_destroy(n->children[i], i, depth+1);
         free(n->children[i]);
     }
 
@@ -41,7 +41,7 @@ static void _tree_recursive_destroy(struct scanner_regex_tree_node *n) {
 }
 
 void scanner_regex_tree_destroy(struct scanner_regex_tree_node *root) {
-    _tree_recursive_destroy(root);
+    _tree_recursive_destroy(root, 0, 0);
     free(root);
 }
 
@@ -86,9 +86,10 @@ void scanner_regex_tree_minimize(struct scanner_regex_tree_node **p_root) {
 
             free(old_root->children);
             free(old_root);
+
+            *p_root = root;
     }
 
-    *p_root = root;
 }
 
 static void _tree_recursive_print(const struct scanner_regex_tree_node * const root, int depth) {

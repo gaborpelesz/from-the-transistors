@@ -32,6 +32,6 @@ struct SCANNER_REGEX_STATUS {
  * @return Parsing status. The status will show if the parsing resulted in some errors.
  */
 struct SCANNER_REGEX_STATUS scanner_regex_parse(const struct cutils_string * const rgx,
-                                                struct scanner_regex_tree_node * root);
+                                                struct scanner_regex_tree_node ** root);
 
 #endif // SCANNER_REGEX_PARSER_H_

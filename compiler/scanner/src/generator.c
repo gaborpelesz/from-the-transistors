@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include <scanner_utils/regex_parser.h>
 
 #ifdef UNIT_TESTING
@@ -19,23 +21,27 @@
 int main(void) {
     // REGEX TO BE TESTED
     //struct cutils_string *rgx = cutils_string_create_from("(ab|b)*");
+    //const char *test_rgx = "(a|ab)*";
     const char *test_rgx = "(a\"ab\\\"|cb\"|(asdf*b?))[0-9]\\s\\t\n end+";
     struct cutils_string *rgx = cutils_string_create_from(test_rgx);
 
     struct scanner_regex_tree_node *root;
 
     printf("scanning regex: %s\n", rgx->_s);
-    struct SCANNER_REGEX_STATUS status = scanner_regex_parse(rgx, root);
+    struct SCANNER_REGEX_STATUS status = scanner_regex_parse(rgx, &root);
     printf("status: %d\n", status.type);
     if (status.type != SCANNER_REGEX_SUCCESS) {
-        printf("\t%s", status.error_msg);
+        printf("\t%s\n", status.error_msg);
+    } else {
+        scanner_regex_tree_print(root);
     }
 
-    scanner_regex_tree_print(root);
 
     // deconstruct
     cutils_string_destroy(rgx);
-    scanner_regex_tree_destroy(root);
+    if (status.type == SCANNER_REGEX_SUCCESS) {
+        scanner_regex_tree_destroy(root);
+    }
     // ~ deconstruct
 
     return 0;

@@ -14,6 +14,13 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **14/01/21**:
+    - **Today**:
+        - Unit tests for the (at least some parts) parser are ready, tested the parser with some regexes
+    - **Next**:
+        - Figure out the implementation of the Finite automatons
+            - for this I need to understand the NFA to DFA transformation algorithm so I can efficiently implement the algorithm with the data structure
+        - The Regex tree is implemented as a linked list... Refactoring it to a dynamic array of nodes where the nodes could point to other parts of the array would be a much better practice and would be much more efficient
 - **02/01/21 (plus some earlier days)**:
     - **Today**:
         - Instead of the separate regex scanner and parser I've implemented a one-pass algorithm to do both and create a regex evaluation graph on the go.

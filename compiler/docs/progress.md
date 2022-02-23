@@ -14,14 +14,24 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
-- **14/01/21**:
+- **23/02/22**:
+    - **Today**:
+        - Understood the NFA to DFA algorithm
+        - The implementation of the NFA or the DFA does not matter that much!
+    - **Next**:
+        - Implement the NFA/DFA structure, however, you like!
+        - Look up other implementations afterwards and check against them!
+        - Implement the Thompson construction for the NFAs
+        - Implement the NFA to DFA algorithm
+            - I will need to implement bit-vectors as a set representation data-structure
+- **14/01/22**:
     - **Today**:
         - Unit tests for the (at least some parts) parser are ready, tested the parser with some regexes
     - **Next**:
         - Figure out the implementation of the Finite automatons
             - for this I need to understand the NFA to DFA transformation algorithm so I can efficiently implement the algorithm with the data structure
         - The Regex tree is implemented as a linked list... Refactoring it to a dynamic array of nodes where the nodes could point to other parts of the array would be a much better practice and would be much more efficient
-- **02/01/21 (plus some earlier days)**:
+- **02/01/22 (plus some earlier days)**:
     - **Today**:
         - Instead of the separate regex scanner and parser I've implemented a one-pass algorithm to do both and create a regex evaluation graph on the go.
         - I've implemented the Tree struct and corresponding functions and also created unit tests (all pass)

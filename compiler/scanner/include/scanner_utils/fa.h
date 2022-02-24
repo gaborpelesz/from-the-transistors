@@ -17,6 +17,7 @@
  *                 and the fact that we go from state_0 to state_n.
  *                 the first state (state_0) is ALWAYS the error state.
  *   -   ALPHABET: We set the finite alphabet to be always equal to 128, representing the ASCII character set.
+ *                 In case of an NFA, the NUL character (0x0) represents the empty transition.
  *   -    INITIAL: We need to store the initial state
  *   -  ACCEPTING: bit-vector -> nth bit is accepting if == 1
  *   - TRANSITION: Most of the characters does not do anything (transition to error_state),

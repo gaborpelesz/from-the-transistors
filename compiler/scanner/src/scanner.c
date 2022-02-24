@@ -31,7 +31,7 @@ void hello() {
     static int hello_counter = 0;
     printf("hello: %d\n", ++hello_counter);
 }
-// FOR DEBUG
+// ~FOR DEBUG
 
 // PRE-DEFINED GENERATED TABLES ---------
 
@@ -44,10 +44,10 @@ void hello() {
 #define FA_STATE_BAD -1 // this gets pushed to the stack at first
 
 // TODO sizes are only imaginary for now
-static BOOL is_accepting_state[4];        // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
-static short transition_table[4][256];   // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
+static BOOL is_accepting_state[4];      // indexed by state -> returns if the state is accepting (TRUE) or not (FALSE)
+static short transition_table[4][256];  // indexed by a state (1st) and a char (2nd) -> returns the corresponding next state
 static unsigned int classify_lexeme[4]; // indexed by accepting state -> returns index of token
-static struct cutils_string* tokens[2];        // list of token names
+static struct cutils_string* tokens[2]; // list of token names
 
 // --------------------------------------
 
@@ -56,9 +56,9 @@ static struct cutils_string* tokens[2];        // list of token names
  *  each of them into a syntactic category (token).
  * 
  * Inputs:
- *  -                              text: string of characters to analyze
+ *  -            text: string of characters to analyze
  *  - (MODIFIES) token_classes: the function creates a sequential list of the indices of tokens as it discovers them in the text
- *  - (MODIFIES)  analyzed_token_lexeme: the function creates a sequential list of lexemes as it discovers them in the text
+ *  - (MODIFIES) analyzed_token_lexeme: the function creates a sequential list of lexemes as it discovers them in the text
  * 
  * Notes:
  *  The function appends the same amount of elements to both 'token_classes' and 'token_lexemes'.

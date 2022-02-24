@@ -14,6 +14,12 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **24/02/22**:
+    - **Today**:
+        - designed the NFA/DFA implementation
+    - **Next**:
+        - implement the NFA/DFA functions
+    - continue with **23/02/22**
 - **23/02/22**:
     - **Today**:
         - Understood the NFA to DFA algorithm

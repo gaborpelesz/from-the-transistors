@@ -1,6 +1,15 @@
 #ifndef SCANNER_FINITE_AUTOMATON_H
 #define SCANNER_FINITE_AUTOMATON_H
 
+/**
+ * Helper struct for a more efficient implementation of table-lookup
+ * represents a function of characters returning a next state
+ */
+struct _scanner_fa_transition {
+    char c;
+    unsigned char next_state;
+};
+
 /** 
  * scanner_fa_128 implements a finite automaton with 
  * 127 possible states + error state with any ASCII transition
@@ -45,6 +54,8 @@ struct scanner_fa_128 {
     unsigned int accepting[4];    // bit-vector with 32*4 = 128 states
                                   // (n_states can handle 128 states at max)
 
+    unsigned int n_transitions;
+    unsigned int _capacity_transitions;
     // This is not a 2D array. This is a pointer to an array of pointers.
     // The array of pointers point to specific locations in a second array.
     //
@@ -53,21 +64,16 @@ struct scanner_fa_128 {
     //    |     -------------      ...
     //    |                 |
     //    v                 v
-    // | *b0 | *b1 | *b2 | *b3 | *b4 | *b5 | *b6 | *b7 | ...
+    // |  b0 |  b1 |  b2 |  b3 |  b4 |  b5 |  b6 |  b7 | ...
     //
-    // The elements *bM, are pointers to a char to state struct.
+    // The elements bM, are char to state structs.
     // Usually there are only a few transition per state, so the array length
     // that element *aN is pointing to is usually very small (making it efficient).
-    struct _scanner_fa_transition_ **transition;
-};
-
-/**
- * Helper struct for a more efficient implementation of table-lookup
- * represents a function of characters returning a next state
- */
-struct _scanner_fa_transition_ctos {
-    char c;
-    unsigned char next_state;
+    //
+    // Note: *a0 is the transition from the error state. Because the error state is a
+    //       collector, and there is no transition coming out of it, it will always point
+    //       to the first element of the _scanner_fa_transition_ctos array.
+    struct _scanner_fa_transition **transition;
 };
 
 // --------------

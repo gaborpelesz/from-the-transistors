@@ -2,9 +2,22 @@
 
 #include <stdlib.h>
 
+#define SCANNER_FA_TRANSITION_SCALING_FACTOR 2
+#define SCANNER_FA_TRANSITION_INIT_SIZE 10
+
 struct scanner_fa_128 *scanner_fa_create() {
-    // TODO
-    // - don't forget that the error state should already be added!
+    struct scanner_fa_128 *fa = malloc(sizeof(struct scanner_fa_128));
+    fa->n_states = 1;
+    fa->initial_state = 0;
+
+    for (unsigned int i = 0; i < 4; i++) {
+        fa->accepting[i] = 0;
+    }
+
+    fa->transition = calloc(sizeof(struct _scanner_fa_transition*), 1);
+    fa->transition[0] = malloc(sizeof(struct _scanner_fa_transition) * SCANNER_FA_TRANSITION_INIT_SIZE);
+    fa->_capacity_transitions = SCANNER_FA_TRANSITION_INIT_SIZE;
+    fa->n_transitions = 0;
 }
 
 void scanner_fa_destroy(struct scanner_fa_128 *fa) {
@@ -23,11 +36,32 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa) {
 }
 
 void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_add) {
-    // TODO if needed ...
+    fa->n_states += n_states_to_add;
+    realloc(fa->transition, fa->n_states);
 }
 
 void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state) {
-    // TODO if needed
+    fa->n_transitions++;
+
+    if (fa->n_transitions > fa->_capacity_transitions) {
+        fa->_capacity_transitions *= 2;
+        realloc(fa->transition[0], fa->_capacity_transitions);
+    }
+    
+    // TODO: it turns out adding a transition isn't that simple. Imagine adding transitions to
+    //       state_1 and then to state_3. When I want to get all the transitions at state_1 then I have
+    //       to check where state_2 ends. state_2 is a nullptr, so I have to go further and check state_3 (?! yes this is possible).
+    //       Also what if I want to finally add transitions to state_2? How do I manage the array for state_3?
+    //
+    // This is not impossible just requires rigorous planning and design, and correct and careful implementation
+
+
+    if (fa->transition[state] == NULL) {
+        // `state` didn't have any transitions previously.
+        fa->transition[state] = fa->transition[0] + (fa->n_transitions - 1);
+    } else {
+
+    }
 }
 
 void scanner_fa_set_accepting(struct scanner_fa_128 *fa, unsigned char state, unsigned char accepting) {

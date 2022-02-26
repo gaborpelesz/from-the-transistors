@@ -40,27 +40,68 @@ void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_
     realloc(fa->transition, fa->n_states);
 }
 
-void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state) {
-    fa->n_transitions++;
+/**
+ * Right shifts the transition array of an FA from a specified index
+ * 
+ * @param from_element_i: the first index to be right shifted
+ */
+void _fa_trans_right_shift(struct scanner_fa_128 *fa, unsigned int from_element_i) {
+    for (unsigned int i = fa->n_transitions; i >= from_element_i; i--) {
+        fa->transition[0][i] = fa->transition[0][i-1];
+    }
+}
 
-    if (fa->n_transitions > fa->_capacity_transitions) {
+void _fa_state_right_shift(struct scanner_fa_128 *fa, unsigned int from_state) {
+    for (unsigned int i = from_state; i < fa->n_states; i++) {
+        if (fa->transition[i] != NULL) {
+            fa->transition[i]++;
+        }
+    }
+}
+
+void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state) {
+    if (state == 0) {
+        printf("WARNING: trying to add transition to the error-state. The attempt didn't have any consequences because you can't add transitions to the error state.");
+        return;
+    }
+
+    if (next_state == 0) {
+        printf("WARNING: adding transition from character to an error state is not necessary. Every undefined character transition will result in a transition to the error state;");
+        return;
+    }
+    
+    // realloc if needed to give space for the new element
+    fa->n_transitions++;
+    if (fa->n_transitions >= fa->_capacity_transitions) {
         fa->_capacity_transitions *= 2;
         realloc(fa->transition[0], fa->_capacity_transitions);
     }
-    
-    // TODO: it turns out adding a transition isn't that simple. Imagine adding transitions to
-    //       state_1 and then to state_3. When I want to get all the transitions at state_1 then I have
-    //       to check where state_2 ends. state_2 is a nullptr, so I have to go further and check state_3 (?! yes this is possible).
-    //       Also what if I want to finally add transitions to state_2? How do I manage the array for state_3?
-    //
-    // This is not impossible just requires rigorous planning and design, and correct and careful implementation
 
+    // closest non-null member on the right
+    int closest_right_i = state;
+    while (closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL) ++closest_right_i;
+
+    struct _scanner_fa_transition *inserted_elem;
+
+    // if there was no non-null state pointer to the right
+    // then insert an element to the end of the character transition array
+    if (closest_right_i == fa->n_states) {
+        inserted_elem = fa->transition[0] + (fa->n_transitions - 1);
+    }
+    // else shift everything from the closest element to the right by 1
+    // and insert an element just before the first element of the closest state
+    else {
+        _fa_trans_right_shift(fa, fa->transition[closest_right_i] - fa->transition[0]);
+        _fa_state_right_shift(fa, closest_right_i);
+
+        inserted_elem = fa->transition[closest_right_i] - 1;
+    }
+
+    inserted_elem->c = character;
+    inserted_elem->next_state = next_state;
 
     if (fa->transition[state] == NULL) {
-        // `state` didn't have any transitions previously.
-        fa->transition[state] = fa->transition[0] + (fa->n_transitions - 1);
-    } else {
-
+        fa->transition[state] = inserted_elem;
     }
 }
 
@@ -84,11 +125,13 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
     return fa->accepting[nth_int] & ~(1 << nth_bit);
 }
 
+unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch) {
+    
+}
+
 struct scanner_fa_128 *scanner_fa_thompson_create_char(unsigned char character) {
-    struct scanner_fa_128 *fa = malloc(sizeof(struct scanner_fa_128));
 }
 
 void scanner_fa_thompson_alter(const struct scanner_fa_128 *fa0, const struct scanner_fa_128 * const fa1);
 void scanner_fa_thompson_concat(const struct scanner_fa_128 *fa0, const struct scanner_fa_128 * const fa1);
 void scanner_fa_thompson_close(const struct scanner_fa_128 *fa);
-unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch);

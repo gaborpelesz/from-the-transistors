@@ -49,30 +49,45 @@ struct _scanner_fa_transition {
  * 
  */
 struct scanner_fa_128 {
-    unsigned char n_states;       // support for 127 state FA + error state (state_0)
+    unsigned char n_states;       // support for 127 state FA + error state (state_0) (n_states>=1 always because of the error state)
     unsigned char initial_state;
     unsigned int accepting[4];    // bit-vector with 32*4 = 128 states
                                   // (n_states can handle 128 states at max)
 
-    unsigned int n_transitions;
-    unsigned int _capacity_transitions;
+    unsigned int n_transitions; // number of transitions
+    unsigned int _capacity_transitions; // the capacity should always be greater by at least 1 than n_transitions
+
     // This is not a 2D array. This is a pointer to an array of pointers.
     // The array of pointers point to specific locations in a second array.
     //
-    // | *a0 | *a1 | *a2 | *a3 | *a4 | *a5 | *a6 | *a7 | ...
-    //    |     |
-    //    |     -------------      ...
-    //    |                 |
-    //    v                 v
-    // |  b0 |  b1 |  b2 |  b3 |  b4 |  b5 |  b6 |  b7 | ...
+    //                         `transition`
+    //                              |
+    //                            __|
+    //                           |
+    //                           v
+    // state pointer array:   | *a0 | *a1 | *a2 | *a3 | *a4 | *a5 | *a6 | *a7 | ...
+    //                           |           |                 |
+    //                           |           |_____       _____|                ...
+    //                           |                 |     |
+    //                           v                 v     v
+    // char transition array: |  b0 |  b1 |  b2 |  b3 |  b4 |  b5 |  b6 |  b7 | ...
     //
-    // The elements bM, are char to state structs.
+    // in the example we have:
+    //      - state_0 with b0,b1,b2 transitions
+    //      - state_2 with b3 transition
+    //      - state_5 with b4,b5,b6,b7 transitions
+    //      - ...
+    //
+    // The elements in *aN are the states, respectively. Every state points to the
+    // start of its possible transitions bM.
+    //
+    // The elements bM, are char to next state structs.
     // Usually there are only a few transition per state, so the array length
     // that element *aN is pointing to is usually very small (making it efficient).
     //
     // Note: *a0 is the transition from the error state. Because the error state is a
     //       collector, and there is no transition coming out of it, it will always point
-    //       to the first element of the _scanner_fa_transition_ctos array.
+    //       to the first element of the _scanner_fa_transition array.
     struct _scanner_fa_transition **transition;
 };
 

@@ -59,6 +59,12 @@ void _fa_state_right_shift(struct scanner_fa_128 *fa, unsigned int from_state) {
     }
 }
 
+unsigned char _fa_find_closest_right(struct scanner_fa_128 *fa, unsigned char state) {
+    unsigned char closest_right_i = state;
+    while (closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL) ++closest_right_i;
+    return closest_right_i;
+}
+
 void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state) {
     if (state == 0) {
         printf("WARNING: trying to add transition to the error-state. The attempt didn't have any consequences because you can't add transitions to the error state.");
@@ -78,8 +84,7 @@ void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, u
     }
 
     // closest non-null member on the right
-    int closest_right_i = state;
-    while (closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL) ++closest_right_i;
+    unsigned char closest_right_i = _fa_find_closest_right(fa, state);
 
     struct _scanner_fa_transition *inserted_elem;
 
@@ -126,7 +131,23 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
 }
 
 unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch) {
-    
+    if (state == 0) {
+        return 0;
+    }
+
+    unsigned char closest_right_i = _fa_find_closest_right(fa, state);
+
+    struct _scanner_fa_transition *end;
+
+    if (closest_right_i == fa->n_states) {
+        end = fa->transition[0] + fa->n_transitions;
+    } else {
+        end = fa->transition[closest_right_i];
+    }
+
+    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
+        if (i_ptr->c == ch) return state;        
+    }
 }
 
 struct scanner_fa_128 *scanner_fa_thompson_create_char(unsigned char character) {

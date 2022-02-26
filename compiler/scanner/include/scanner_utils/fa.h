@@ -66,14 +66,15 @@ struct scanner_fa_128 {
     //                           |
     //                           v
     // state pointer array:   | *a0 | *a1 | *a2 | *a3 | *a4 | *a5 | *a6 | *a7 | ...
-    //                           |           |                 |
-    //                           |           |_____       _____|                ...
+    //                           |     |      |                 |
+    //                           |_____|      |_____       _____|                ...
     //                           |                 |     |
     //                           v                 v     v
     // char transition array: |  b0 |  b1 |  b2 |  b3 |  b4 |  b5 |  b6 |  b7 | ...
     //
     // in the example we have:
-    //      - state_0 with b0,b1,b2 transitions
+    //      - state_0 (error state) pointing to the beginning of the char transition array
+    //      - state_1 with b0,b1,b2 transitions
     //      - state_2 with b3 transition
     //      - state_5 with b4,b5,b6,b7 transitions
     //      - ...
@@ -101,7 +102,7 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa);
 
 /**
  * increases `n_states`
- * adds a nullptr to the and of `transition`
+ * adds a nullptr to the and of `transition` state pointer array
  */
 void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_add);
 /**

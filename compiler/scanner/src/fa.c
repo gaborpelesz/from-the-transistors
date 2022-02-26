@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include <cutils/arrayi.h>
+
 #define SCANNER_FA_TRANSITION_SCALING_FACTOR 2
 #define SCANNER_FA_TRANSITION_INIT_SIZE 10
 
@@ -66,6 +68,10 @@ unsigned char _fa_find_closest_right(struct scanner_fa_128 *fa, unsigned char st
 }
 
 void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state) {
+    // TODO: what if char transition for state already exists?
+    // maybe call:
+    //      if (scanner_fa_next_state(fa, state, character) != 0)
+
     if (state == 0) {
         printf("WARNING: trying to add transition to the error-state. The attempt didn't have any consequences because you can't add transitions to the error state.");
         return;
@@ -74,6 +80,10 @@ void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, u
     if (next_state == 0) {
         printf("WARNING: adding transition from character to an error state is not necessary. Every undefined character transition will result in a transition to the error state;");
         return;
+    }
+
+    if (scanner_fa_next_state(fa, state, character) != 0) {
+        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.", state, character);
     }
     
     // realloc if needed to give space for the new element
@@ -130,11 +140,7 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
     return fa->accepting[nth_int] & ~(1 << nth_bit);
 }
 
-unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch) {
-    if (state == 0) {
-        return 0;
-    }
-
+struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_fa_128 * const fa, unsigned char state) {
     unsigned char closest_right_i = _fa_find_closest_right(fa, state);
 
     struct _scanner_fa_transition *end;
@@ -144,9 +150,38 @@ unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsi
     } else {
         end = fa->transition[closest_right_i];
     }
+    return end;
+}
+
+unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch) {
+    if (state == 0) {
+        return 0;
+    }
+
+    struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
     for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
-        if (i_ptr->c == ch) return state;        
+        if (i_ptr->c == ch) return i_ptr->next_state;
+    }
+}
+
+void scanner_nfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch, struct cutils_arrayi ** next_states) {
+    if (state == 0) {
+        return 0;
+    }
+
+    if (*next_states == NULL) {
+        cutils_arrayi_create();
+    } else {
+        cutils_arrayi_empty(*next_states);
+    }
+
+    struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
+
+    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
+        if (i_ptr->c == ch) {
+            cutils_arrayi_push(*next_states, i_ptr->next_state);
+        }
     }
 }
 

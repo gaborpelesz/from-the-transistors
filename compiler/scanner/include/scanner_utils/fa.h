@@ -1,6 +1,8 @@
 #ifndef SCANNER_FINITE_AUTOMATON_H
 #define SCANNER_FINITE_AUTOMATON_H
 
+#include <cutils/arrayi.h>
+
 /**
  * Helper struct for a more efficient implementation of table-lookup
  * represents a function of characters returning a next state
@@ -98,25 +100,29 @@ struct scanner_fa_128 {
 // --------------
 
 struct scanner_fa_128 *scanner_fa_create();
-void scanner_fa_destroy(struct scanner_fa_128 *fa);
+void scanner_fa_destroy(struct scanner_fa_128 * const fa);
 
 /**
  * increases `n_states`
  * adds a nullptr to the and of `transition` state pointer array
  */
-void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_add);
+void scanner_fa_add_states(struct scanner_fa_128 * const fa, unsigned char n_states_to_add);
 /**
  * Adds a transition to a `next_state`, given a `state` and a `character`.
  * In case of an NFA, the empty transition is represented with the `character` == 0 (NUL, 0x0).
  */
-void scanner_fa_add_transition(struct scanner_fa_128 *fa, unsigned char state, unsigned char character, unsigned char next_state);
+void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char state, unsigned char character, unsigned char next_state);
 /**
  * Sets or resets whether the state is accepting.
  * @param fa: the finite automaton to work on
  * @param state: the state which to set
  * @param accepting: Boolean value, whether to set the state to accepting (1) or not (0).
  */
-void scanner_fa_set_accepting(struct scanner_fa_128 *fa, unsigned char state, unsigned char accepting);
+void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char state, unsigned char accepting);
+
+void scanner_fa_set_union(unsigned int *a, const unsigned int * const b);
+void scanner_fa_set_zero(unsigned int *a);
+unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a);
 // --------------
 
 // ---------------------------------
@@ -132,19 +138,25 @@ struct scanner_fa_128 *scanner_fa_thompson_create_char(unsigned char character);
 /**
  * Construct an NFA equivalent to regex alteration between two FAs.
  * The result will be written into `fa0`.
+ * 
+ * Disclaimer: With this function use only thompson constructed FA structures!
  */
-void scanner_fa_thompson_alter(const struct scanner_fa_128 *fa0, const struct scanner_fa_128 * const fa1);
+void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1);
 
 /**
  * Construct an NFA equivalent to regex concatenation between two FAs.
  * The result will be written into `fa0`.
+ * 
+ * Disclaimer: With this function use only thompson constructed FA structures!
  */
-void scanner_fa_thompson_concat(const struct scanner_fa_128 *fa0, const struct scanner_fa_128 * const fa1);
+void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1);
 
 /**
  * Construct an NFA equivalent to regex closure.
+ *
+ * Disclaimer: With this function use only thompson constructed FA structures!
  */
-void scanner_fa_thompson_close(const struct scanner_fa_128 *fa);
+void scanner_fa_thompson_close(struct scanner_fa_128 * const fa);
 
 // ---------------------------------
 
@@ -154,7 +166,8 @@ void scanner_fa_thompson_close(const struct scanner_fa_128 *fa);
 // -----------
 
 unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state);
-unsigned char scanner_fa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch);
+void scanner_nfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch, struct cutils_arrayi ** next_states);
+unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch);
 // -----------
 
 #endif // SCANNER_FINITE_AUTOMATON_H

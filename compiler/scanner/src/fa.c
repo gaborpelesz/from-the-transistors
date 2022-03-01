@@ -4,6 +4,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifdef UNIT_TESTING
+    #include <cutils/cutils_unittest.h>
+#endif
+
 #define SCANNER_FA_TRANSITION_SCALING_FACTOR 2
 #define SCANNER_FA_TRANSITION_INIT_SIZE 10
 
@@ -37,7 +41,15 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa) {
 
 void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_add) {
     unsigned char n_states_new = fa->n_states + n_states_to_add;
-    realloc(fa->transition, n_states_new);
+    struct _scanner_fa_transition **new_ptr = realloc(fa->transition, n_states_new * sizeof(struct _scanner_fa_transition *));
+
+    if (new_ptr != NULL) {
+        fa->transition = new_ptr;
+    } else {
+        printf("ERROR: `realloc` failed when adding states to FA.");
+        scanner_fa_destroy(fa);
+        exit(EXIT_FAILURE);
+    }
 
     for (unsigned char i = fa->n_states; i < n_states_new; i++) {
         fa->transition[i] = NULL;
@@ -82,7 +94,7 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
         return;
     }
 
-    if (scanner_fa_next_state(fa, state, character) != 0) {
+    if (scanner_dfa_next_state(fa, state, character) != 0) {
         printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.", state, character);
     }
     

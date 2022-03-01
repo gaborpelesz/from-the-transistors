@@ -133,9 +133,23 @@ static void test_fa_add_transition_simple(void **state) {
     // (it always points to the start of the char to transition array)
     for (unsigned int i = 1; i < fa->n_states; i++) {
         if (i == 1 || i == 2) {
+            assert_non_null(fa->transition[i]);
+        } else {
             assert_null(fa->transition[i]);
         }
     }
+
+    // TODO, something is not right at how we store the transitions with scanner_fa_add_transition
+    printf("hello start\n");
+    printf("%u, %u, %u\n", fa->transition[0], fa->transition[1], fa->transition[2]);
+    printf("%c, %c, %c\n", fa->transition[0]->c, fa->transition[1]->c, fa->transition[2]->c);
+
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
+    printf("hello end\n");
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'b'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'c'), 0);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
     
     scanner_fa_destroy(fa);
 }

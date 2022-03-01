@@ -46,7 +46,7 @@ void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_
     if (new_ptr != NULL) {
         fa->transition = new_ptr;
     } else {
-        printf("ERROR: `realloc` failed when adding states to FA.");
+        printf("ERROR: `realloc` failed when adding states to FA.\n");
         scanner_fa_destroy(fa);
         exit(EXIT_FAILURE);
     }
@@ -77,7 +77,7 @@ void _fa_state_right_shift(struct scanner_fa_128 *fa, unsigned int from_state) {
     }
 }
 
-unsigned char _fa_find_closest_right(struct scanner_fa_128 *fa, unsigned char state) {
+unsigned char _fa_find_closest_right(const struct scanner_fa_128 * const fa, unsigned char state) {
     unsigned char closest_right_i = state;
     while (closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL) ++closest_right_i;
     return closest_right_i;
@@ -85,19 +85,19 @@ unsigned char _fa_find_closest_right(struct scanner_fa_128 *fa, unsigned char st
 
 void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char state, unsigned char character, unsigned char next_state) {
     if (state == 0) {
-        printf("WARNING: trying to add transition to the error-state. The attempt didn't have any consequences because you can't add transitions to the error state.");
+        printf("WARNING: trying to add transition to the error-state. The attempt didn't have any consequences because you can't add transitions to the error state.\n");
         return;
     }
 
     if (next_state == 0) {
-        printf("WARNING: adding transition from character to an error state is not necessary. Every undefined character transition will result in a transition to the error state;");
+        printf("WARNING: adding transition from character to an error state is not necessary. Every undefined character transition will result in a transition to the error state.\n");
         return;
     }
 
     if (scanner_dfa_next_state(fa, state, character) != 0) {
-        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.", state, character);
+        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
     }
-    
+
     // realloc if needed to give space for the new element
     fa->n_transitions++;
     if (fa->n_transitions >= fa->_capacity_transitions) {
@@ -134,7 +134,7 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
 
 void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char state, unsigned char accepting) {
     if (state > fa->n_states) {
-        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.", state, fa->n_states);
+        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
         exit(EXIT_FAILURE);
     }
     int nth_int = (int)(state / fa->n_states); // determine which int to use
@@ -169,7 +169,7 @@ void scanner_fa_set_zero(unsigned int *a) {
 
 unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state) {
     if (state > fa->n_states) {
-        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.", state, fa->n_states);
+        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
         exit(EXIT_FAILURE);
     }
     int nth_int = (int)(state / fa->n_states); // determine which int to use
@@ -182,36 +182,49 @@ struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_
 
     struct _scanner_fa_transition *end;
 
-    if (closest_right_i == fa->n_states) {
+    // if `state` is the last state
+    // why not checking `state + 1 == fa->n_states`?
+    //  - Because the last state with transitions might not be the actual last state
+    if (closest_right_i + 1 == fa->n_states) {
         end = fa->transition[0] + fa->n_transitions;
     } else {
         end = fa->transition[closest_right_i];
     }
+
     return end;
 }
 
 unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch) {
-    if (state == 0) {
+    if (state >= fa->n_states) {
+        printf("ERROR: Trying to find next state for a state (%d) that does not exist. (n_states=%d)\n", state, fa->n_states);
+        exit(EXIT_FAILURE);
+    }
+
+    if (state == 0 || fa->transition[state] == NULL) {
         return 0;
     }
 
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
     for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
+        printf("%c, %c\n", i_ptr->c, ch);
         if (i_ptr->c == ch) return i_ptr->next_state;
     }
+
+    return 0;
 }
 
 void scanner_nfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch, struct cutils_arrayi ** next_states) {
-    if (state == 0) {
-        return 0;
-    }
-
     if (*next_states == NULL) {
-        cutils_arrayi_create();
+        *next_states = cutils_arrayi_create();
     } else {
         cutils_arrayi_empty(*next_states);
     }
+
+    if (state == 0) {
+        return;
+    }
+
 
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
@@ -233,7 +246,7 @@ struct scanner_fa_128 *scanner_fa_thompson_create_char(unsigned char character) 
 
 void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {
     if (fa0->n_states + fa1->n_states - 1 > 128) {
-        printf("ERROR: scanner_fa_merge -> resulting FA is too big. Aborting...");
+        printf("ERROR: scanner_fa_merge -> resulting FA is too big. Aborting...\n");
         exit(EXIT_FAILURE);
     }
 

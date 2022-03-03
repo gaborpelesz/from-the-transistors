@@ -111,20 +111,19 @@ static void test_fa_add_transition_simple(void **state) {
     struct scanner_fa_128 *fa = scanner_fa_create();
 
     // creating the following regex: a(a|b)*
-    //scanner_fa_add_states(fa, 2);
-    //scanner_fa_add_transition(fa, 1, 'a', 2);
-    //scanner_fa_add_transition(fa, 2, 'a', 2);
-    //scanner_fa_add_transition(fa, 2, 'b', 2);
+    scanner_fa_add_states(fa, 2);
+    scanner_fa_add_transition(fa, 1, 'a', 2);
+    scanner_fa_add_transition(fa, 2, 'a', 2);
+    scanner_fa_add_transition(fa, 2, 'b', 2);
 
 
 
-    // TODO, something is not right at how we store the transitions with scanner_fa_add_transition
     printf("hello start\n");
-    //printf("%u, %u, %u\n", (unsigned int)fa->transition[0], (unsigned int)fa->transition[1], (unsigned int)fa->transition[2]);
-    //printf("%c, %c, %c\n", fa->transition[0]->c, fa->transition[1]->c, fa->transition[2]->c);
-    //printf("%d, %d, %d\n", fa->transition[0]->next_state, fa->transition[1]->next_state, fa->transition[2]->next_state);
-    //printf("%c, %d\n", fa->transition[2] + sizeof(struct _scanner_fa_transition*), fa->transition[1]->c, fa->transition[2]->c);
-    printf("%u, %u, %u\n", (unsigned int)(fa->transition[0]), (unsigned int)(fa->transition[1]), (unsigned int)(fa->transition[0]+1));
+    printf("%ld, %ld, %ld\n", fa->transition[0], fa->transition[1], fa->transition[2]);
+    printf("%c, %c, %c\n", fa->transition[0]->c, fa->transition[1]->c, fa->transition[2]->c);
+    printf("%d, %d, %d\n", fa->transition[0]->next_state, fa->transition[1]->next_state, fa->transition[2]->next_state);
+    printf("%c, %d\n", fa->transition[2] + sizeof(struct _scanner_fa_transition*), fa->transition[1]->c, fa->transition[2]->c);
+    printf("%ld, %ld, %ld, %ld\n", (fa->transition[0]), (fa->transition[1]), (fa->transition[0]+1), (fa->transition[0]+(sizeof(struct _scanner_fa_transition*))));
 
     //assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
     printf("hello end\n");

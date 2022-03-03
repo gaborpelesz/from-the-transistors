@@ -24,6 +24,8 @@ struct scanner_fa_128 *scanner_fa_create() {
     fa->transition[0] = malloc(sizeof(struct _scanner_fa_transition) * SCANNER_FA_TRANSITION_INIT_SIZE);
     fa->_capacity_transitions = SCANNER_FA_TRANSITION_INIT_SIZE;
     fa->n_transitions = 0;
+
+    return fa;
 }
 
 void scanner_fa_destroy(struct scanner_fa_128 *fa) {
@@ -147,7 +149,7 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
 unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a) {
     unsigned int first_accepting = 0;
     for (unsigned int i = 0; i < 4; i++) {
-        while ((a[i] >> first_accepting) & 1 == 0) {
+        while (((a[i] >> first_accepting) & 1) == 0) {
             first_accepting++;
 
             if (first_accepting % 32 == 0) {
@@ -155,6 +157,8 @@ unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a) {
             }
         }
     }
+
+    return first_accepting;
 }
 
 void scanner_fa_set_union(unsigned int *a, const unsigned int * const b) {
@@ -208,7 +212,7 @@ unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, uns
 
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
-    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr+sizeof(struct _scanner_fa_transition*)) {
+    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr += sizeof(struct _scanner_fa_transition*)) {
         printf("%c, %c\n", i_ptr->c, ch);
         if (i_ptr->c == ch) return i_ptr->next_state;
     }

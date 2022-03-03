@@ -113,7 +113,8 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
     // if there was no non-null state pointer to the right
     // then insert an element to the end of the character transition array
     if (closest_right_i == fa->n_states) {
-        inserted_elem = fa->transition[0] + (fa->n_transitions - 1);
+        // TODO WATCHOUT: multiplication with sizeof(struct _scanner_fa_transition*) is not needed I think.
+        inserted_elem = fa->transition[0] + sizeof(struct _scanner_fa_transition*)*(fa->n_transitions - 1);
     }
     // else shift everything from the closest element to the right by 1
     // and insert an element just before the first element of the closest state
@@ -121,7 +122,8 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
         _fa_trans_right_shift(fa, fa->transition[closest_right_i] - fa->transition[0]);
         _fa_state_right_shift(fa, closest_right_i);
 
-        inserted_elem = fa->transition[closest_right_i] - 1;
+        // TODO WATCHOUT: multiplication with sizeof(struct _scanner_fa_transition*) is not needed I think.
+        inserted_elem = fa->transition[closest_right_i] - 1 * sizeof(struct _scanner_fa_transition*);
     }
 
     inserted_elem->c = character;
@@ -186,7 +188,7 @@ struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_
     // why not checking `state + 1 == fa->n_states`?
     //  - Because the last state with transitions might not be the actual last state
     if (closest_right_i + 1 == fa->n_states) {
-        end = fa->transition[0] + fa->n_transitions;
+        end = fa->transition[0] + fa->n_transitions * sizeof(struct _scanner_fa_transition*);
     } else {
         end = fa->transition[closest_right_i];
     }
@@ -206,7 +208,7 @@ unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, uns
 
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
-    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
+    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr+sizeof(struct _scanner_fa_transition*)) {
         printf("%c, %c\n", i_ptr->c, ch);
         if (i_ptr->c == ch) return i_ptr->next_state;
     }

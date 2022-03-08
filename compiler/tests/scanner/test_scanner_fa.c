@@ -112,36 +112,33 @@ static void test_fa_add_transition_simple(void **state) {
 
     // creating the following regex: a(a|b)*
     scanner_fa_add_states(fa, 2);
-    printf("inserting state 1 `a`:\n");
     scanner_fa_add_transition(fa, 1, 'a', 2);
-    printf("inserting state 2 `a`:\n");
     scanner_fa_add_transition(fa, 2, 'a', 2);
-    printf("inserting state 2 `b`:\n");
     scanner_fa_add_transition(fa, 2, 'b', 2);
 
-    struct _scanner_fa_transition a[4];
-    a[0].c = 'a';
-    a[1].c = 'b';
-    printf("\n");
-    printf("%ld\n", sizeof(struct _scanner_fa_transition*));
-    printf("%ld\n", sizeof(struct _scanner_fa_transition));
-    printf("%ld, %ld, %ld, %ld\n", a-1, a, a+1, a+sizeof(struct _scanner_fa_transition));
-    printf("THIS IS: %c\n", (a + 1)->c);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'b'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'c'), 0);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
+    
+    scanner_fa_destroy(fa);
+}
 
+static void test_fa_add_transition_simple_outorder(void **state) {
+    struct scanner_fa_128 *fa = scanner_fa_create();
 
-    printf("\n");
-    printf("hello start\n");
-    printf("%ld, %ld, %ld\n", fa->transition[0], fa->transition[1], fa->transition[2]);
-    printf("%c, %c, %c\n", fa->transition[1]->c, fa->transition[2]->c, (fa->transition[2]+1)->c);
-    printf("%d, %d, %d\n", fa->transition[0]->next_state, fa->transition[1]->next_state, fa->transition[2]->next_state);
-    printf("%ld, %ld, %ld, %ld\n", (fa->transition[0]), (fa->transition[1]), (fa->transition[0]+1), (fa->transition[0]+1));
-
-    //assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
-    printf("hello end\n");
-    //assert_int_equal(scanner_dfa_next_state(fa, 2, 'a'), 2);
-    //assert_int_equal(scanner_dfa_next_state(fa, 2, 'b'), 2);
-    //assert_int_equal(scanner_dfa_next_state(fa, 2, 'c'), 0);
-    //assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
+    // creating the following regex: a(a|b)*
+    scanner_fa_add_states(fa, 2);
+    scanner_fa_add_transition(fa, 2, 'a', 2);
+    scanner_fa_add_transition(fa, 1, 'a', 2);
+    scanner_fa_add_transition(fa, 2, 'b', 2);
+    
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'b'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'c'), 0);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
     
     scanner_fa_destroy(fa);
 }
@@ -193,6 +190,7 @@ int main(void) {
         cmocka_unit_test(test_fa_add_states_40),
         cmocka_unit_test(test_fa_set_accepting),
         cmocka_unit_test(test_fa_add_transition_simple),
+        cmocka_unit_test(test_fa_add_transition_simple_outorder),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

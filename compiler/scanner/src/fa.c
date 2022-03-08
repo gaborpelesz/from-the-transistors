@@ -90,7 +90,7 @@ void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_
  * @param from_element_i: the first index to be right shifted
  */
 void _fa_trans_right_shift(struct scanner_fa_128 *fa, unsigned int from_element_i) {
-    for (unsigned int i = fa->n_transitions; i >= from_element_i; i--) {
+    for (unsigned int i = fa->n_transitions; i > from_element_i; i--) {
         fa->transition[0][i] = fa->transition[0][i-1];
     }
 }
@@ -124,10 +124,9 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
         return;
     }
 
-    // TODO uncomment below
-    //if (scanner_dfa_next_state(fa, state, character) != 0) {
-    //    printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
-    //}
+    if (scanner_dfa_next_state(fa, state, character) != 0) {
+        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
+    }
 
     // realloc if needed to give space for the new element
     fa->n_transitions++;
@@ -144,8 +143,6 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
     // then insert an element to the end of the character transition array
     if (closest_right_i == fa->n_states) {
         inserted_elem = fa->transition[0] + (fa->n_transitions - 1);
-        printf("%ld\n", inserted_elem);
-        printf("%d\n", fa->n_transitions);
     }
     // else shift everything from the closest element to the right by 1
     // and insert an element just before the first element of the closest state
@@ -240,7 +237,6 @@ unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, uns
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
     for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
-        printf("%c, %c\n", i_ptr->c, ch);
         if (i_ptr->c == ch)
             return i_ptr->next_state;
     }

@@ -14,6 +14,17 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **08/03/22**:
+    - **Today**:
+        - fixing all issues with FA add transition
+    - **Next**:
+        - continue with testing the FA function.
+        - continue with **23/02/22**
+- **03/03/22**:
+    - **Today**:
+        - fixing bug regarding the NFA implementation
+    - **Next**:
+        - I need to check every pointer arithmetic operation that I'm doing in FA functions. Instead of adding integers I have to add `sizeof(struct _scanner_fa_transition*)`
 - **28/02/22**:
     - **Today**:
         - I've been implementing NFA/DFA in the last couple of days. Implementation is finished with helper function for Thompson construction.

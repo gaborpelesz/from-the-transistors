@@ -33,7 +33,6 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa) {
         if (fa->transition != NULL) {
             if (fa->transition[0] != NULL) {
                 free(fa->transition[0]);
-                fa->transition[0] = NULL;
             }
             free(fa->transition);
         }
@@ -41,7 +40,32 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa) {
     }
 }
 
+void _scanner_fa_transition_realloc(struct scanner_fa_128 * const fa, unsigned int new_capacity) {
+    struct _scanner_fa_transition *old_ptr = fa->transition[0];
+    fa->transition[0] = realloc(fa->transition[0], fa->_capacity_transitions * sizeof(struct _scanner_fa_transition));
+
+    if (fa->transition[0] == NULL) {
+        printf("ERROR: `realloc` failed when reallocating transitions to FA.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fa->_capacity_transitions = new_capacity;
+
+    if (old_ptr != fa->transition[0]) {
+        // preserving correct pointers in the state pointer array
+        for (unsigned int i = 1; i < fa->n_states; i++) {
+            if (fa->transition[i] != NULL) {
+                fa->transition[i] = (struct _scanner_fa_transition*)((unsigned long)(fa->transition[0]) + ((unsigned long)(fa->transition[i]) - (unsigned long)old_ptr));
+            }
+        }
+    }
+}
+
 void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_add) {
+    if (n_states_to_add == 0) {
+        return;
+    }
+
     unsigned char n_states_new = fa->n_states + n_states_to_add;
     struct _scanner_fa_transition **new_ptr = realloc(fa->transition, n_states_new * sizeof(struct _scanner_fa_transition *));
 
@@ -61,7 +85,7 @@ void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_
 }
 
 /**
- * Right shifts the transition array of an FA from a specified index
+ * Right shifts by one the transition array of an FA from a specified index
  * 
  * @param from_element_i: the first index to be right shifted
  */
@@ -74,14 +98,18 @@ void _fa_trans_right_shift(struct scanner_fa_128 *fa, unsigned int from_element_
 void _fa_state_right_shift(struct scanner_fa_128 *fa, unsigned int from_state) {
     for (unsigned int i = from_state; i < fa->n_states; i++) {
         if (fa->transition[i] != NULL) {
-            fa->transition[i]++;
+            fa->transition[i]++; // pointer++ so it points to the next address
         }
     }
 }
 
+/**
+ * Finds the first non-null state to the right of the current state.
+ * If the current state is the last non-null state, this function returns `fa->n_states`.
+ */
 unsigned char _fa_find_closest_right(const struct scanner_fa_128 * const fa, unsigned char state) {
-    unsigned char closest_right_i = state;
-    while (closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL) ++closest_right_i;
+    unsigned char closest_right_i;
+    for (closest_right_i = state+1; closest_right_i < fa->n_states && fa->transition[closest_right_i] == NULL; ++closest_right_i);
     return closest_right_i;
 }
 
@@ -96,15 +124,15 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
         return;
     }
 
-    if (scanner_dfa_next_state(fa, state, character) != 0) {
-        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
-    }
+    // TODO uncomment below
+    //if (scanner_dfa_next_state(fa, state, character) != 0) {
+    //    printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
+    //}
 
     // realloc if needed to give space for the new element
     fa->n_transitions++;
     if (fa->n_transitions >= fa->_capacity_transitions) {
-        fa->_capacity_transitions *= 2;
-        realloc(fa->transition[0], fa->_capacity_transitions);
+        _scanner_fa_transition_realloc(fa, fa->_capacity_transitions * SCANNER_FA_TRANSITION_SCALING_FACTOR);
     }
 
     // closest non-null member on the right
@@ -115,22 +143,23 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
     // if there was no non-null state pointer to the right
     // then insert an element to the end of the character transition array
     if (closest_right_i == fa->n_states) {
-        // TODO WATCHOUT: multiplication with sizeof(struct _scanner_fa_transition*) is not needed I think.
-        inserted_elem = fa->transition[0] + sizeof(struct _scanner_fa_transition*)*(fa->n_transitions - 1);
+        inserted_elem = fa->transition[0] + (fa->n_transitions - 1);
+        printf("%ld\n", inserted_elem);
+        printf("%d\n", fa->n_transitions);
     }
     // else shift everything from the closest element to the right by 1
     // and insert an element just before the first element of the closest state
     else {
-        _fa_trans_right_shift(fa, fa->transition[closest_right_i] - fa->transition[0]);
+        _fa_trans_right_shift(fa, (unsigned long)(fa->transition[closest_right_i]) - (unsigned long)(fa->transition[0]));
         _fa_state_right_shift(fa, closest_right_i);
 
-        // TODO WATCHOUT: multiplication with sizeof(struct _scanner_fa_transition*) is not needed I think.
-        inserted_elem = fa->transition[closest_right_i] - 1 * sizeof(struct _scanner_fa_transition*);
+        inserted_elem = fa->transition[closest_right_i] - 1; // pointer to point one element to the left
     }
 
     inserted_elem->c = character;
     inserted_elem->next_state = next_state;
 
+    // if this transition was the first transition for the state
     if (fa->transition[state] == NULL) {
         fa->transition[state] = inserted_elem;
     }
@@ -189,10 +218,8 @@ struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_
     struct _scanner_fa_transition *end;
 
     // if `state` is the last state
-    // why not checking `state + 1 == fa->n_states`?
-    //  - Because the last state with transitions might not be the actual last state
-    if (closest_right_i + 1 == fa->n_states) {
-        end = fa->transition[0] + fa->n_transitions * sizeof(struct _scanner_fa_transition*);
+    if (closest_right_i == fa->n_states) {
+        end = fa->transition[0] + fa->n_transitions;
     } else {
         end = fa->transition[closest_right_i];
     }
@@ -212,9 +239,10 @@ unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, uns
 
     struct _scanner_fa_transition *end = _fa_find_closest_right_ptr(fa, state);
 
-    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr += sizeof(struct _scanner_fa_transition*)) {
+    for (struct _scanner_fa_transition *i_ptr = fa->transition[state]; i_ptr != end; i_ptr++) {
         printf("%c, %c\n", i_ptr->c, ch);
-        if (i_ptr->c == ch) return i_ptr->next_state;
+        if (i_ptr->c == ch)
+            return i_ptr->next_state;
     }
 
     return 0;
@@ -261,18 +289,20 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
 
     scanner_fa_add_states(fa0, fa0->n_states + fa1->n_states - 1);
 
+    unsigned int fa0_new_capacity;
 #if SCANNER_FA_TRANSITION_SCALING_FACTOR == 2
-    fa0->_capacity_transitions = SCANNER_FA_TRANSITION_INIT_SIZE << (int)ceil(log2((fa0->n_transitions + fa1->n_transitions) / 10.0)); 
+    fa0_new_capacity = SCANNER_FA_TRANSITION_INIT_SIZE << (int)ceil(log2((fa0->n_transitions + fa1->n_transitions) / 10.0)); 
 #else
     int scale_factor = SCANNER_FA_TRANSITION_SCALING_FACTOR;
     int init = SCANNER_FA_TRANSITION_INIT_SIZE;
     int t_sum = fa0->n_transitions + fa1->n_transitions;
     int scale = ceil(log10((t_sum)/10.0)/log10(scale_factor));
-    fa0->_capacity_transitions = init * pow(scale_factor, scale);
+    fa0_new_capacity = init * pow(scale_factor, scale);
 #endif
 
     // copying char to next state array
-    realloc(fa0->transition[0], fa0->_capacity_transitions);
+    _scanner_fa_transition_realloc(fa0, fa0_new_capacity);
+
     memcpy(fa0->transition[0]+fa0->n_transitions, fa1->transition[0], fa1->n_transitions);
     fa0->n_transitions += fa1->n_transitions;
 

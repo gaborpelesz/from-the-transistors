@@ -69,7 +69,7 @@ struct scanner_fa_128 {
     //                           v
     // state pointer array:   | *a0 | *a1 | *a2 | *a3 | *a4 | *a5 | *a6 | *a7 | ...
     //                           |     |      |                 |
-    //                           |_____|      |_____       _____|                ...
+    //                           |_____|      |_____       _____|               ...
     //                           |                 |     |
     //                           v                 v     v
     // char transition array: |  b0 |  b1 |  b2 |  b3 |  b4 |  b5 |  b6 |  b7 | ...
@@ -101,6 +101,8 @@ struct scanner_fa_128 {
 
 struct scanner_fa_128 *scanner_fa_create();
 void scanner_fa_destroy(struct scanner_fa_128 * const fa);
+
+void _scanner_fa_transition_realloc(struct scanner_fa_128 * const fa, unsigned int new_capacity);
 
 /**
  * increases `n_states`
@@ -166,6 +168,10 @@ void scanner_fa_thompson_close(struct scanner_fa_128 * const fa);
 // -----------
 
 unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state);
+
+/**
+ * if `next_states` is empty then the next state is the error state only
+ */
 void scanner_nfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch, struct cutils_arrayi ** next_states);
 unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch);
 // -----------

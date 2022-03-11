@@ -218,15 +218,101 @@ static void test_fa_is_accepting(void **state) {
 }
 
 static void test_dfa_next_state(void **state) {
-    assert_true(0);
+    struct scanner_fa_128 *fa = scanner_fa_create();
+
+    // creating the following regex: a(a|b)*
+    scanner_fa_add_states(fa, 2);
+    scanner_fa_add_transition(fa, 1, 'a', 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
+
+    scanner_fa_add_transition(fa, 2, 'a', 2);
+    scanner_fa_add_transition(fa, 2, 'b', 2);
+
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'b'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa, 2, 'c'), 0);
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
+
+    scanner_fa_destroy(fa);
 }
 
 static void test_nfa_next_state(void **state) {
-    assert_true(0);
+    struct scanner_fa_128 *fa = scanner_fa_create();
+
+    // creating the following regex: a(a|b)*
+    scanner_fa_add_states(fa, 3);
+
+    scanner_fa_add_transition(fa, 1, 'a', 2);
+    scanner_fa_add_transition(fa, 1, 'a', 3);
+    scanner_fa_add_transition(fa, 2, 'b', 2);
+    scanner_fa_add_transition(fa, 2, 'b', 1);
+
+    struct cutils_arrayi* arr = NULL;
+    scanner_nfa_next_state(fa, 1, 'a', &arr);
+
+    assert_int_equal(arr->size, 2);
+    assert_int_equal(cutils_arrayi_at(arr, 0), 2);
+    assert_int_equal(cutils_arrayi_at(arr, 1), 3);
+
+    scanner_nfa_next_state(fa, 2, 'b', &arr);
+
+    assert_int_equal(arr->size, 2);
+    assert_int_equal(cutils_arrayi_at(arr, 0), 2);
+    assert_int_equal(cutils_arrayi_at(arr, 1), 1);
+
+    cutils_arrayi_destroy(arr);
+    scanner_fa_destroy(fa);
+}
+
+static void test_fa_merge(void **state) {
+    // creating the following regex: a(a|b)*
+    struct scanner_fa_128 *fa0 = scanner_fa_create();
+    scanner_fa_add_states(fa0, 2);
+    scanner_fa_add_transition(fa0, 1, 'a', 2);
+    scanner_fa_add_transition(fa0, 2, 'a', 2);
+    scanner_fa_add_transition(fa0, 2, 'b', 2);
+    scanner_fa_set_accepting(fa0, 2, 1);
+    fa0->initial_state = 1;
+
+    // creating the following regex: c(c|d)*
+    struct scanner_fa_128 *fa1 = scanner_fa_create();
+    scanner_fa_add_states(fa1, 2);
+    scanner_fa_add_transition(fa1, 1, 'c', 2);
+    scanner_fa_add_transition(fa1, 2, 'c', 2);
+    scanner_fa_add_transition(fa1, 2, 'd', 2);
+    scanner_fa_set_accepting(fa1, 2, 1);
+    fa1->initial_state = 1;
+
+    scanner_fa_merge(fa0, fa1);
+
+    assert_int_equal(fa0->initial_state, 1);
+    assert_int_equal(fa0->n_states, 5);
+    assert_int_equal(fa0->n_transitions, 6);
+    assert_int_equal(fa0->accepting[0], 4+16);
+
+
+    assert_int_equal(scanner_dfa_next_state(fa0, 1, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa0, 2, 'a'), 2);
+    assert_int_equal(scanner_dfa_next_state(fa0, 2, 'b'), 2);
+
+    assert_int_equal(scanner_dfa_next_state(fa0, 3, 'c'), 4);
+    assert_int_equal(scanner_dfa_next_state(fa0, 4, 'c'), 4);
+    assert_int_equal(scanner_dfa_next_state(fa0, 4, 'd'), 4);
+
+    scanner_fa_destroy(fa0);
+    scanner_fa_destroy(fa1);
 }
 
 static void test_fa_thompson_create_char(void **state) {
-    assert_true(0);
+    struct scanner_fa_128 *fa = scanner_fa_thompson_create_char('a');
+
+    assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
+    assert_int_equal(fa->accepting[0], 4);
+    assert_int_equal(fa->initial_state, 1);
+    assert_int_equal(fa->n_states, 3);
+    assert_int_equal(fa->n_transitions, 1);
+
+    scanner_fa_destroy(fa);
 }
 
 static void test_fa_thompson_alter(void **state) {
@@ -252,7 +338,11 @@ int main(void) {
         cmocka_unit_test(test_set_union),
         cmocka_unit_test(test_set_zero),
         cmocka_unit_test(test_set_find_first_accepting),
-        cmocka_unit_test(test_fa_is_accepting)
+        cmocka_unit_test(test_fa_is_accepting),
+        cmocka_unit_test(test_dfa_next_state),
+        cmocka_unit_test(test_nfa_next_state),
+        cmocka_unit_test(test_fa_thompson_create_char),
+        cmocka_unit_test(test_fa_merge)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -11,6 +11,24 @@
 #define SCANNER_FA_TRANSITION_SCALING_FACTOR 2
 #define SCANNER_FA_TRANSITION_INIT_SIZE 10
 
+void print_state_transitions(struct scanner_fa_128* fa0) {
+    for (unsigned int i = 0; i < fa0->n_transitions; i++) {
+        printf("%d.: %ld = %c, %d\n", i, fa0->transition[0]+i, (fa0->transition[0]+i)->c, (fa0->transition[0]+i)->next_state);
+    }
+}
+
+void print_transitions(struct scanner_fa_128* fa0) {
+    for (unsigned int i = 0; i < fa0->n_states; i++) {
+        printf("%ld", fa0->transition[i]);
+
+        if (i != fa0->n_states - 1) {
+            printf(", ");
+        } else {
+            printf("\n");
+        }
+    }
+}
+
 struct scanner_fa_128 *scanner_fa_create() {
     struct scanner_fa_128 *fa = malloc(sizeof(struct scanner_fa_128));
     fa->n_states = 1;
@@ -167,9 +185,20 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
         printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
         exit(EXIT_FAILURE);
     }
-    int nth_int = (int)(state / fa->n_states); // determine which int to use
+
+    int nth_int = (int)(state / 32); // determine which int to use
     int nth_bit = state - nth_int * 32;
     fa->accepting[nth_int] = fa->accepting[nth_int] ^ (accepting << nth_bit);
+}
+
+unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state) {
+    if (state > fa->n_states) {
+        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
+        exit(EXIT_FAILURE);
+    }
+    int nth_int = (int)(state / 32); // determine which int to use
+    int nth_bit = state - nth_int * 32;
+    return (fa->accepting[nth_int] >> nth_bit) & 1;
 }
 
 unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a) {
@@ -199,16 +228,6 @@ void scanner_fa_set_zero(unsigned int *a) {
     for (unsigned int i = 0; i < 4; i++) {
         a[i] = 0;
     }
-}
-
-unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state) {
-    if (state > fa->n_states) {
-        printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
-        exit(EXIT_FAILURE);
-    }
-    int nth_int = (int)(state / 32); // determine which int to use
-    int nth_bit = state - nth_int * 32;
-    return (fa->accepting[nth_int] >> nth_bit) & 1;
 }
 
 struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_fa_128 * const fa, unsigned char state) {
@@ -285,7 +304,7 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
     int fa0_n = fa0->n_states;
     int fa0_n_transitions = fa0->n_transitions;
 
-    scanner_fa_add_states(fa0, fa0->n_states + fa1->n_states - 1);
+    scanner_fa_add_states(fa0, fa1->n_states - 1);
 
     unsigned int fa0_new_capacity;
 #if SCANNER_FA_TRANSITION_SCALING_FACTOR == 2
@@ -298,13 +317,13 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
     fa0_new_capacity = init * pow(scale_factor, scale);
 #endif
 
-    // copying char to next state array
     _scanner_fa_transition_realloc(fa0, fa0_new_capacity);
 
-    memcpy(fa0->transition[0]+fa0->n_transitions, fa1->transition[0], fa1->n_transitions);
+    // copying char to next state array
+    memcpy(fa0->transition[0]+fa0->n_transitions, fa1->transition[0], fa1->n_transitions * sizeof(struct _scanner_fa_transition));
     fa0->n_transitions += fa1->n_transitions;
 
-    // copying state transition array
+    // copying state transition array pointers values
     struct _scanner_fa_transition *fa1_transitions_start = fa0->transition[0] + fa0_n_transitions;
     for (unsigned int i = 1; i < fa1->n_states; i++) {
         if (fa1->transition[i] != NULL) {
@@ -312,7 +331,13 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
         }
     }
 
-    scanner_fa_set_union(fa0->accepting, fa1->accepting);
+    for (unsigned int i = fa0_n; i < fa0->n_transitions; i++) {
+        (fa0->transition[0]+i)->next_state += fa1->n_states-1;
+    }
+
+    for (int i = 1; i < fa1->n_states; i++) {
+        scanner_fa_set_accepting(fa0, i+fa0_n-1, scanner_fa_is_accepting(fa1, i));
+    }
 }
 
 void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {

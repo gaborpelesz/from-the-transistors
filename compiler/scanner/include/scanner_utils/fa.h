@@ -124,6 +124,13 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
 
 void scanner_fa_set_union(unsigned int *a, const unsigned int * const b);
 void scanner_fa_set_zero(unsigned int *a);
+
+/**
+ * Shifts the bit-vector to the right by `shift` amount.
+ * Fills with zeros from the left.
+ */
+//void TODO_scanner_fa_set_shift(unsigned int * const set4, unsigned int shift) {}
+
 unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a);
 // --------------
 
@@ -159,6 +166,11 @@ void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct 
  * Disclaimer: With this function use only thompson constructed FA structures!
  */
 void scanner_fa_thompson_close(struct scanner_fa_128 * const fa);
+
+/**
+ * Merges two FA's together
+ */
+void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1);
 
 // ---------------------------------
 

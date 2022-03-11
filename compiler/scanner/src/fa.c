@@ -173,18 +173,20 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
 }
 
 unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a) {
-    unsigned int first_accepting = 0;
     for (unsigned int i = 0; i < 4; i++) {
-        while (((a[i] >> first_accepting) & 1) == 0) {
-            first_accepting++;
+        if (a[i] != 0) {
+            unsigned int first_accepting = 0;
 
-            if (first_accepting % 32 == 0) {
-                break;
+            // find first 1 bit
+            while (((a[i] >> first_accepting) & 1) == 0) {
+                first_accepting++;
             }
+
+            return first_accepting + 32*i;
         }
     }
 
-    return first_accepting;
+    return 0xffff;
 }
 
 void scanner_fa_set_union(unsigned int *a, const unsigned int * const b) {
@@ -204,9 +206,9 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
         printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
         exit(EXIT_FAILURE);
     }
-    int nth_int = (int)(state / fa->n_states); // determine which int to use
+    int nth_int = (int)(state / 32); // determine which int to use
     int nth_bit = state - nth_int * 32;
-    return fa->accepting[nth_int] & ~(1 << nth_bit);
+    return (fa->accepting[nth_int] >> nth_bit) & 1;
 }
 
 struct _scanner_fa_transition * _fa_find_closest_right_ptr(const struct scanner_fa_128 * const fa, unsigned char state) {

@@ -186,10 +186,10 @@ static void test_set_zero(void **state) {
     assert_int_equal(a[3], 0);
 }
 
-static void test_set_find_first_accepting(void **state) {
+static void test_find_first_accepting(void **state) {
     unsigned int a[4] = {0, 128, 1, 5};
 
-    unsigned int first_accepting = scanner_fa_set_find_first_accepting(a);
+    unsigned int first_accepting = scanner_fa_find_first_accepting(a);
 
     assert_int_equal(first_accepting, 32+7);
 }
@@ -325,10 +325,12 @@ static void test_fa_thompson_alter(void **state) {
 
     // Test replicates the example from book "Engineering a compiler"
     // page 46, Figure 2.4 (d) NFA for "a | b"
-    assert_int_equal(scanner_fa_is_accepting(fa0, 6), 1);
     assert_int_equal(fa0->initial_state, 5);
     assert_int_equal(fa0->n_states, 7);
     assert_int_equal(fa0->n_transitions, 6);
+    for (unsigned int i = 0; i < 7; i++) {
+        assert_int_equal(scanner_fa_is_accepting(fa0, i), i==6);
+    }
 
     // s_m epsilon transitions to s_i and s_k
     scanner_nfa_next_state(fa0, 5, 0x00, &next_states);
@@ -357,16 +359,151 @@ static void test_fa_thompson_alter(void **state) {
 }
 
 static void test_fa_thompson_concat(void **state) {
-    assert_true(0);
+    // Thompson create: ab
+    struct scanner_fa_128 *fa0 = scanner_fa_thompson_create_char('a');
+    struct scanner_fa_128 *fa1 = scanner_fa_thompson_create_char('b');
+    struct cutils_arrayi *next_states = NULL;
+
+    scanner_fa_thompson_concat(fa0, fa1);
+    
+    // Test replicates the example from book "Engineering a compiler"
+    // page 46, Figure 2.4 (c) NFA for "ab"
+    assert_int_equal(fa0->initial_state, 1);
+    assert_int_equal(fa0->n_states, 5);
+    assert_int_equal(fa0->n_transitions, 3);
+    for (unsigned int i = 0; i < 5; i++) {
+        assert_int_equal(scanner_fa_is_accepting(fa0, i), i==4);
+    }
+
+    // s_i transition to s_j
+    scanner_nfa_next_state(fa0, 1, 'a', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 2);
+
+    // s_j epsilon transition to s_k
+    scanner_nfa_next_state(fa0, 2, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 3);
+
+    // s_k transition s_l
+    scanner_nfa_next_state(fa0, 3, 'b', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 4);
+
+    scanner_fa_destroy(fa0);
+    scanner_fa_destroy(fa1);
+    cutils_arrayi_destroy(next_states);
 }
 
 static void test_fa_thompson_close(void **state) {
-    assert_true(0);
+    // Thompson create: a*
+    struct scanner_fa_128 *fa0 = scanner_fa_thompson_create_char('a');
+    struct cutils_arrayi *next_states = NULL;
+
+    scanner_fa_thompson_close(fa0);
+    
+    // Test replicates the example from book "Engineering a compiler"
+    // page 46, Figure 2.4 (e) NFA for "a*"
+    assert_int_equal(fa0->initial_state, 3);
+    assert_int_equal(fa0->n_states, 5);
+    assert_int_equal(fa0->n_transitions, 5);
+    for (unsigned int i = 0; i < 5; i++) {
+        assert_int_equal(scanner_fa_is_accepting(fa0, i), i==4);
+    }
+
+    // s_i transition to s_j
+    scanner_nfa_next_state(fa0, 1, 'a', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 2);
+
+    // s_j epsilon transitions to s_p and s_q
+    scanner_nfa_next_state(fa0, 2, 0x00, &next_states);
+    assert_int_equal(next_states->size, 2);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 4);
+
+    // s_p epsilon transitions to s_i and s_q
+    scanner_nfa_next_state(fa0, 3, 0x00, &next_states);
+    assert_int_equal(next_states->size, 2);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 4);
+
+    scanner_fa_destroy(fa0);
+    cutils_arrayi_destroy(next_states);
 }
 
 static void test_fa_thompson_all(void **state) {
     // building a(b|c)* with Thompson construction
-    assert_true(0);
+    // Test replicates the example from book "Engineering a compiler"
+    // page 47, Figure 2.5
+    struct scanner_fa_128 *fa0 = scanner_fa_thompson_create_char('a');
+    struct scanner_fa_128 *fa1 = scanner_fa_thompson_create_char('b');
+    struct scanner_fa_128 *fa2 = scanner_fa_thompson_create_char('c');
+    struct cutils_arrayi *next_states = NULL;
+
+    scanner_fa_thompson_alter(fa1, fa2);
+    scanner_fa_thompson_close(fa1);
+    scanner_fa_thompson_concat(fa0, fa1);
+
+    assert_int_equal(fa0->initial_state, 1);
+    assert_int_equal(fa0->n_states, 11);
+    assert_int_equal(fa0->n_transitions, 12);
+    for (unsigned int i = 0; i < fa0->n_states; i++) {
+        assert_int_equal(scanner_fa_is_accepting(fa0, i), i==10);
+    }
+    
+    // s0 -> s1
+    scanner_nfa_next_state(fa0, 1, 'a', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 2);
+    
+    // s1 -> s8
+    scanner_nfa_next_state(fa0, 2, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 9);
+
+    // s8 -> s6, s9
+    scanner_nfa_next_state(fa0, 9, 0x00, &next_states);
+    assert_int_equal(next_states->size, 2);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 7);
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 10);
+    
+    // s6 -> s2, s4
+    scanner_nfa_next_state(fa0, 7, 0x00, &next_states);
+    assert_int_equal(next_states->size, 2);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 3);
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 5);
+
+    // s2 -> s3
+    scanner_nfa_next_state(fa0, 3, 'b', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 4);
+    
+    // s4 -> s5
+    scanner_nfa_next_state(fa0, 5, 'c', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 6);
+
+    // s3 -> s7
+    scanner_nfa_next_state(fa0, 4, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 8);
+
+    // s5 -> s7
+    scanner_nfa_next_state(fa0, 6, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 8); 
+
+    // s7 -> s6, s9
+    scanner_nfa_next_state(fa0, 8, 0x00, &next_states);
+    assert_int_equal(next_states->size, 2);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 7); 
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 10); 
+
+    scanner_fa_destroy(fa0);
+    scanner_fa_destroy(fa1);
+    scanner_fa_destroy(fa2);
+    cutils_arrayi_destroy(next_states);
 }
 
 int main(void) {
@@ -379,13 +516,16 @@ int main(void) {
         cmocka_unit_test(test_fa_add_transition_simple_outorder),
         cmocka_unit_test(test_set_union),
         cmocka_unit_test(test_set_zero),
-        cmocka_unit_test(test_set_find_first_accepting),
+        cmocka_unit_test(test_find_first_accepting),
         cmocka_unit_test(test_fa_is_accepting),
         cmocka_unit_test(test_dfa_next_state),
         cmocka_unit_test(test_nfa_next_state),
         cmocka_unit_test(test_fa_merge),
         cmocka_unit_test(test_fa_thompson_create_char),
-        cmocka_unit_test(test_fa_thompson_alter)
+        cmocka_unit_test(test_fa_thompson_alter),
+        cmocka_unit_test(test_fa_thompson_concat),
+        cmocka_unit_test(test_fa_thompson_close),
+        cmocka_unit_test(test_fa_thompson_all)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

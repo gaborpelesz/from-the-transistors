@@ -131,7 +131,7 @@ void scanner_fa_set_zero(unsigned int *a);
  */
 //void TODO_scanner_fa_set_shift(unsigned int * const set4, unsigned int shift) {}
 
-unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a);
+unsigned int scanner_fa_find_first_accepting(const unsigned int * const a);
 // --------------
 
 // ---------------------------------
@@ -187,5 +187,8 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
 void scanner_nfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch, struct cutils_arrayi ** next_states);
 unsigned char scanner_dfa_next_state(const struct scanner_fa_128 * const fa, unsigned char state, char ch);
 // -----------
+
+void print_state_transitions(struct scanner_fa_128* fa0);
+void print_transitions(struct scanner_fa_128* fa0);
 
 #endif // SCANNER_FINITE_AUTOMATON_H

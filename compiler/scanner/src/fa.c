@@ -60,7 +60,7 @@ void scanner_fa_destroy(struct scanner_fa_128 *fa) {
 
 void _scanner_fa_transition_realloc(struct scanner_fa_128 * const fa, unsigned int new_capacity) {
     struct _scanner_fa_transition *old_ptr = fa->transition[0];
-    fa->transition[0] = realloc(fa->transition[0], fa->_capacity_transitions * sizeof(struct _scanner_fa_transition));
+    fa->transition[0] = realloc(fa->transition[0], new_capacity * sizeof(struct _scanner_fa_transition));
 
     if (fa->transition[0] == NULL) {
         printf("ERROR: `realloc` failed when reallocating transitions to FA.\n");
@@ -192,7 +192,12 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
 
     int nth_int = (int)(state / 32); // determine which int to use
     int nth_bit = state - nth_int * 32;
-    fa->accepting[nth_int] = fa->accepting[nth_int] ^ (accepting << nth_bit);
+
+    if (accepting) {
+        fa->accepting[nth_int] = fa->accepting[nth_int] | (1 << nth_bit);
+    } else {
+        fa->accepting[nth_int] = fa->accepting[nth_int] & ~(1 << nth_bit); 
+    }
 }
 
 unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, unsigned short state) {
@@ -205,7 +210,7 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
     return (fa->accepting[nth_int] >> nth_bit) & 1;
 }
 
-unsigned int scanner_fa_set_find_first_accepting(const unsigned int * const a) {
+unsigned int scanner_fa_find_first_accepting(const unsigned int * const a) {
     for (unsigned int i = 0; i < 4; i++) {
         if (a[i] != 0) {
             unsigned int first_accepting = 0;
@@ -310,18 +315,21 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
 
     scanner_fa_add_states(fa0, fa1->n_states - 1);
 
-    unsigned int fa0_new_capacity;
-#if SCANNER_FA_TRANSITION_SCALING_FACTOR == 2
-    fa0_new_capacity = SCANNER_FA_TRANSITION_INIT_SIZE << (int)ceil(log2((fa0->n_transitions + fa1->n_transitions) / 10.0)); 
-#else
-    int scale_factor = SCANNER_FA_TRANSITION_SCALING_FACTOR;
-    int init = SCANNER_FA_TRANSITION_INIT_SIZE;
-    int t_sum = fa0->n_transitions + fa1->n_transitions;
-    int scale = ceil(log10((t_sum)/10.0)/log10(scale_factor));
-    fa0_new_capacity = init * pow(scale_factor, scale);
-#endif
+    if (fa0->n_transitions + fa1->n_transitions > fa0->_capacity_transitions) {
+        unsigned int fa0_new_capacity;
 
-    _scanner_fa_transition_realloc(fa0, fa0_new_capacity);
+        #if SCANNER_FA_TRANSITION_SCALING_FACTOR == 2
+            fa0_new_capacity = SCANNER_FA_TRANSITION_INIT_SIZE << (int)ceil(log2((fa0->n_transitions + fa1->n_transitions) / 10.0)); 
+        #else
+            int scale_factor = SCANNER_FA_TRANSITION_SCALING_FACTOR;
+            int init = SCANNER_FA_TRANSITION_INIT_SIZE;
+            int t_sum = fa0->n_transitions + fa1->n_transitions;
+            int scale = ceil(log10((t_sum)/10.0)/log10(scale_factor));
+            fa0_new_capacity = init * pow(scale_factor, scale);
+        #endif
+
+        _scanner_fa_transition_realloc(fa0, fa0_new_capacity);
+    }
 
     // copying char to next state array
     memcpy(fa0->transition[0]+fa0->n_transitions, fa1->transition[0], fa1->n_transitions * sizeof(struct _scanner_fa_transition));
@@ -338,7 +346,7 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
     // changing the next states for the copied next states
     for (unsigned int i = 0; i < fa1->n_transitions; i++) {
         unsigned int j = fa0_n_transitions + i;
-        (fa0->transition[0]+j)->next_state += fa1->n_states-1;
+        (fa0->transition[0]+j)->next_state += fa0_n-1;
     }
 
     for (int i = 1; i < fa1->n_states; i++) {
@@ -347,8 +355,8 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
 }
 
 void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {
-    int fa0_end_state = scanner_fa_set_find_first_accepting(fa0->accepting);
-    int fa1_end_state = scanner_fa_set_find_first_accepting(fa1->accepting);
+    int fa0_end_state = scanner_fa_find_first_accepting(fa0->accepting);
+    int fa1_end_state = scanner_fa_find_first_accepting(fa1->accepting);
     int fa0_n_states = fa0->n_states;
 
     // setting `fa1` as the only accepting state after concatenation
@@ -362,15 +370,15 @@ void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct 
 
     // adding concat empty transition 
     // `fa0_n_states` is the first state of `fa1` after the merge
-    scanner_fa_add_transition(fa0, fa0_end_state, 0x00, fa0_n_states);
+    scanner_fa_add_transition(fa0, fa0_end_state, 0x00, fa1->initial_state + fa0_n_states - 1);
 }
 
 void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {
     int fa0_initial = fa0->initial_state;
-    int fa0_end = scanner_fa_set_find_first_accepting(fa0->accepting);
+    int fa0_end = scanner_fa_find_first_accepting(fa0->accepting);
 
     int fa1_initial = fa1->initial_state + fa0->n_states - 1;
-    int fa1_end = scanner_fa_set_find_first_accepting(fa1->accepting) + fa0->n_states - 1;
+    int fa1_end = scanner_fa_find_first_accepting(fa1->accepting) + fa0->n_states - 1;
 
     scanner_fa_merge(fa0, fa1);
 
@@ -386,7 +394,6 @@ void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct s
     scanner_fa_add_transition(fa0, fa0->initial_state, 0x00, fa0_initial);
     scanner_fa_add_transition(fa0, fa0->initial_state, 0x00, fa1_initial);
 
-
     // both alternatives' end state empty transition to final state
     scanner_fa_add_transition(fa0, fa0_end, 0x00, fa0->n_states - 1);
     scanner_fa_add_transition(fa0, fa1_end, 0x00, fa0->n_states - 1);
@@ -394,7 +401,7 @@ void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct s
 
 void scanner_fa_thompson_close(struct scanner_fa_128 * const fa) {
     int fa_initial = fa->initial_state;
-    int fa_end = scanner_fa_set_find_first_accepting(fa->accepting);
+    int fa_end = scanner_fa_find_first_accepting(fa->accepting);
 
     scanner_fa_set_zero(fa->accepting);
 

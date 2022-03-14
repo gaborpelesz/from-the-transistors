@@ -13,13 +13,13 @@
 
 void print_state_transitions(struct scanner_fa_128* fa0) {
     for (unsigned int i = 0; i < fa0->n_transitions; i++) {
-        printf("%d.: %ld = %c, %d\n", i, fa0->transition[0]+i, (fa0->transition[0]+i)->c, (fa0->transition[0]+i)->next_state);
+        printf("%d.: %ld = %c (%u), %d\n", i, (long)(fa0->transition[0]+i), (fa0->transition[0]+i)->c, (unsigned int)((fa0->transition[0]+i)->c), (fa0->transition[0]+i)->next_state);
     }
 }
 
 void print_transitions(struct scanner_fa_128* fa0) {
     for (unsigned int i = 0; i < fa0->n_states; i++) {
-        printf("%ld", fa0->transition[i]);
+        printf("%ld", (long)(fa0->transition[i]));
 
         if (i != fa0->n_states - 1) {
             printf(", ");
@@ -108,7 +108,7 @@ void scanner_fa_add_states(struct scanner_fa_128 *fa, unsigned char n_states_to_
  * @param from_element_i: the first index to be right shifted
  */
 void _fa_trans_right_shift(struct scanner_fa_128 *fa, unsigned int from_element_i) {
-    for (unsigned int i = fa->n_transitions; i > from_element_i; i--) {
+    for (unsigned int i = fa->n_transitions - 1; i >= from_element_i; i--) {
         fa->transition[0][i] = fa->transition[0][i-1];
     }
 }
@@ -143,7 +143,7 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
     }
 
     if (scanner_dfa_next_state(fa, state, character) != 0) {
-        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an undeterministic FA from this point.\n", state, character);
+        printf("WARNING: adding already existing transition to state `%d` with char `%c`. This finite automaton will behave as an non-deterministic FA from this point.\n", state, character);
     }
 
     // realloc if needed to give space for the new element
@@ -165,7 +165,11 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
     // else shift everything from the closest element to the right by 1
     // and insert an element just before the first element of the closest state
     else {
-        _fa_trans_right_shift(fa, (unsigned long)(fa->transition[closest_right_i]) - (unsigned long)(fa->transition[0]));
+        // TODO: calculation of from_element_i has issues. Pointer substraction with turning both of them into unsigned long won't return correct answer
+        //       because the size of an element is 2
+        unsigned int from_element_i = (unsigned long)(fa->transition[closest_right_i]) - (unsigned long)(fa->transition[0]); // ">> 1" is an integer divison by 2
+        from_element_i = from_element_i / sizeof(struct _scanner_fa_transition) + 1;
+        _fa_trans_right_shift(fa, from_element_i);
         _fa_state_right_shift(fa, closest_right_i);
 
         inserted_elem = fa->transition[closest_right_i] - 1; // pointer to point one element to the left
@@ -331,8 +335,10 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
         }
     }
 
-    for (unsigned int i = fa0_n; i < fa0->n_transitions; i++) {
-        (fa0->transition[0]+i)->next_state += fa1->n_states-1;
+    // changing the next states for the copied next states
+    for (unsigned int i = 0; i < fa1->n_transitions; i++) {
+        unsigned int j = fa0_n_transitions + i;
+        (fa0->transition[0]+j)->next_state += fa1->n_states-1;
     }
 
     for (int i = 1; i < fa1->n_states; i++) {
@@ -379,6 +385,7 @@ void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct s
     // initial state's empty transition to both alternatives
     scanner_fa_add_transition(fa0, fa0->initial_state, 0x00, fa0_initial);
     scanner_fa_add_transition(fa0, fa0->initial_state, 0x00, fa1_initial);
+
 
     // both alternatives' end state empty transition to final state
     scanner_fa_add_transition(fa0, fa0_end, 0x00, fa0->n_states - 1);

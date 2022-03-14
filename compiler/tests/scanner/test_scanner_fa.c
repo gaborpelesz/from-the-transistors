@@ -316,7 +316,44 @@ static void test_fa_thompson_create_char(void **state) {
 }
 
 static void test_fa_thompson_alter(void **state) {
-    assert_true(0);
+    // Thompson create: a|b
+    struct scanner_fa_128 *fa0 = scanner_fa_thompson_create_char('a');
+    struct scanner_fa_128 *fa1 = scanner_fa_thompson_create_char('b');
+    struct cutils_arrayi *next_states = NULL;
+
+    scanner_fa_thompson_alter(fa0, fa1);
+
+    // Test replicates the example from book "Engineering a compiler"
+    // page 46, Figure 2.4 (d) NFA for "a | b"
+    assert_int_equal(scanner_fa_is_accepting(fa0, 6), 1);
+    assert_int_equal(fa0->initial_state, 5);
+    assert_int_equal(fa0->n_states, 7);
+    assert_int_equal(fa0->n_transitions, 6);
+
+    // s_m epsilon transitions to s_i and s_k
+    scanner_nfa_next_state(fa0, 5, 0x00, &next_states);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 1), 3);
+    // s_i transition to s_j
+    scanner_nfa_next_state(fa0, 1, 'a', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 2);
+    // s_k transition to s_l
+    scanner_nfa_next_state(fa0, 3, 'b', &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 4);
+    // s_j epsilon transition to s_n
+    scanner_nfa_next_state(fa0, 2, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 6);
+    // s_l epsilon transition to s_n
+    scanner_nfa_next_state(fa0, 4, 0x00, &next_states);
+    assert_int_equal(next_states->size, 1);
+    assert_int_equal(cutils_arrayi_at(next_states, 0), 6);
+
+    scanner_fa_destroy(fa0);
+    scanner_fa_destroy(fa1);
+    cutils_arrayi_destroy(next_states);
 }
 
 static void test_fa_thompson_concat(void **state) {
@@ -324,6 +361,11 @@ static void test_fa_thompson_concat(void **state) {
 }
 
 static void test_fa_thompson_close(void **state) {
+    assert_true(0);
+}
+
+static void test_fa_thompson_all(void **state) {
+    // building a(b|c)* with Thompson construction
     assert_true(0);
 }
 
@@ -341,8 +383,9 @@ int main(void) {
         cmocka_unit_test(test_fa_is_accepting),
         cmocka_unit_test(test_dfa_next_state),
         cmocka_unit_test(test_nfa_next_state),
+        cmocka_unit_test(test_fa_merge),
         cmocka_unit_test(test_fa_thompson_create_char),
-        cmocka_unit_test(test_fa_merge)
+        cmocka_unit_test(test_fa_thompson_alter)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

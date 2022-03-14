@@ -50,7 +50,7 @@ int cutils_arrayi_pop(struct cutils_arrayi *const arr) {
 }
 
 int cutils_arrayi_at(const struct cutils_arrayi *const arr, const unsigned int i) {
-    if (i > arr->size) {
+    if (i >= arr->size) {
         printf("Overindexing error: trying to retreive element at index '%d', while the array has only %d elements.\n", i, arr->size);
     }
     return arr->_arr[i];

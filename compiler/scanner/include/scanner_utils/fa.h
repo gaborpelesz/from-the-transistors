@@ -172,6 +172,11 @@ void scanner_fa_thompson_close(struct scanner_fa_128 * const fa);
  */
 void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1);
 
+/**
+ * Implements the subset construction to convert an NFA to a DFA
+ */
+void scanner_fa_nfa_to_dfa(struct scanner_fa_128 * const fa0);
+
 // ---------------------------------
 
 // -----------

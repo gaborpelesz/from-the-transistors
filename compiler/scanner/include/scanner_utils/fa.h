@@ -2,6 +2,7 @@
 #define SCANNER_FINITE_AUTOMATON_H
 
 #include <cutils/arrayi.h>
+#include <cutils/set.h>
 
 /**
  * Helper struct for a more efficient implementation of table-lookup
@@ -53,8 +54,8 @@ struct _scanner_fa_transition {
 struct scanner_fa_128 {
     unsigned char n_states;       // support for 127 state FA + error state (state_0) (n_states>=1 always because of the error state)
     unsigned char initial_state;
-    unsigned int accepting[4];    // bit-vector with 32*4 = 128 states
-                                  // (n_states can handle 128 states at max)
+    struct cutils_set128 accepting; // bit-vector with 32*4 = 128 states
+                                    // (n_states can handle 128 states at max)
 
     unsigned int n_transitions; // number of transitions
     unsigned int _capacity_transitions; // the capacity should always be greater by at least 1 than n_transitions
@@ -122,16 +123,6 @@ void scanner_fa_add_transition(struct scanner_fa_128 * const fa, unsigned char s
  */
 void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char state, unsigned char accepting);
 
-void scanner_fa_set_union(unsigned int *a, const unsigned int * const b);
-void scanner_fa_set_zero(unsigned int *a);
-
-/**
- * Shifts the bit-vector to the right by `shift` amount.
- * Fills with zeros from the left.
- */
-//void TODO_scanner_fa_set_shift(unsigned int * const set4, unsigned int shift) {}
-
-unsigned int scanner_fa_find_first_accepting(const unsigned int * const a);
 // --------------
 
 // ---------------------------------

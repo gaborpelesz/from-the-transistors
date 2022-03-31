@@ -34,9 +34,7 @@ struct scanner_fa_128 *scanner_fa_create() {
     fa->n_states = 1;
     fa->initial_state = 0;
 
-    for (unsigned int i = 0; i < 4; i++) {
-        fa->accepting[i] = 0;
-    }
+    fa->accepting = cutils_set128_empty();
 
     fa->transition = calloc(sizeof(struct _scanner_fa_transition*), 1);
     fa->transition[0] = malloc(sizeof(struct _scanner_fa_transition) * SCANNER_FA_TRANSITION_INIT_SIZE);
@@ -190,13 +188,13 @@ void scanner_fa_set_accepting(struct scanner_fa_128 * const fa, unsigned char st
         exit(EXIT_FAILURE);
     }
 
-    int nth_int = (int)(state / 32); // determine which int to use
-    int nth_bit = state - nth_int * 32;
+    struct cutils_set128 A = cutils_set128_create(state);
 
     if (accepting) {
-        fa->accepting[nth_int] = fa->accepting[nth_int] | (1 << nth_bit);
+        fa->accepting = cutils_set128_union(fa->accepting, A);
     } else {
-        fa->accepting[nth_int] = fa->accepting[nth_int] & ~(1 << nth_bit); 
+        A = cutils_set128_negate(A);
+        fa->accepting = cutils_set128_intersection(fa->accepting, A); 
     }
 }
 
@@ -205,26 +203,8 @@ unsigned char scanner_fa_is_accepting(const struct scanner_fa_128 * const fa, un
         printf("ERROR: scanner -> trying to set %d. state to accepting but FA only has %d of states.\n", state, fa->n_states);
         exit(EXIT_FAILURE);
     }
-    int nth_int = (int)(state / 32); // determine which int to use
-    int nth_bit = state - nth_int * 32;
-    return (fa->accepting[nth_int] >> nth_bit) & 1;
-}
 
-unsigned int scanner_fa_find_first_accepting(const unsigned int * const a) {
-    for (unsigned int i = 0; i < 4; i++) {
-        if (a[i] != 0) {
-            unsigned int first_accepting = 0;
-
-            // find first 1 bit
-            while (((a[i] >> first_accepting) & 1) == 0) {
-                first_accepting++;
-            }
-
-            return first_accepting + 32*i;
-        }
-    }
-
-    return 0xffff;
+    return cutils_set128_has_element(fa->accepting, state);
 }
 
 void scanner_fa_set_union(unsigned int *a, const unsigned int * const b) {
@@ -355,8 +335,8 @@ void scanner_fa_merge(struct scanner_fa_128 * const fa0, const struct scanner_fa
 }
 
 void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {
-    int fa0_end_state = scanner_fa_find_first_accepting(fa0->accepting);
-    int fa1_end_state = scanner_fa_find_first_accepting(fa1->accepting);
+    int fa0_end_state = cutils_set128_smallest(fa0->accepting);
+    int fa1_end_state = cutils_set128_smallest(fa1->accepting);
     int fa0_n_states = fa0->n_states;
 
     // setting `fa1` as the only accepting state after concatenation
@@ -375,15 +355,15 @@ void scanner_fa_thompson_concat(struct scanner_fa_128 * const fa0, const struct 
 
 void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct scanner_fa_128 * const fa1) {
     int fa0_initial = fa0->initial_state;
-    int fa0_end = scanner_fa_find_first_accepting(fa0->accepting);
+    int fa0_end = cutils_set128_smallest(fa0->accepting);
 
     int fa1_initial = fa1->initial_state + fa0->n_states - 1;
-    int fa1_end = scanner_fa_find_first_accepting(fa1->accepting) + fa0->n_states - 1;
+    int fa1_end = cutils_set128_smallest(fa1->accepting) + fa0->n_states - 1;
 
     scanner_fa_merge(fa0, fa1);
 
     // no accepting state remains accepting
-    scanner_fa_set_zero(fa0->accepting);
+    fa0->accepting = cutils_set128_empty();
 
     // creating initial state and final state
     scanner_fa_add_states(fa0, 2);
@@ -401,9 +381,9 @@ void scanner_fa_thompson_alter(struct scanner_fa_128 * const fa0, const struct s
 
 void scanner_fa_thompson_close(struct scanner_fa_128 * const fa) {
     int fa_initial = fa->initial_state;
-    int fa_end = scanner_fa_find_first_accepting(fa->accepting);
+    int fa_end = cutils_set128_smallest(fa->accepting);
 
-    scanner_fa_set_zero(fa->accepting);
+    fa->accepting = cutils_set128_empty(fa->accepting);
 
     scanner_fa_add_states(fa, 2);
     fa->initial_state = fa->n_states - 2;

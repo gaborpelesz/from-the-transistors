@@ -4,6 +4,8 @@
 #include <cmocka.h>
 
 #include <stdio.h>
+
+#include <cutils/set.h>
 #include <cutils/arrayi.h>
 #include <scanner_utils/fa.h>
 
@@ -33,9 +35,7 @@ static void test_fa_create_destroy(void **state) {
     assert_int_equal(fa->n_states, 1);
     assert_int_equal(fa->initial_state, 0);
     
-    for (unsigned int i = 0; i < 4; i++) {
-        assert_int_equal(fa->accepting[i], 0);
-    }
+    assert_true(cutils_set128_isempty(fa->accepting));
 
     assert_int_equal(fa->n_transitions, 0);
     assert_int_equal(fa->_capacity_transitions, 10);
@@ -54,9 +54,7 @@ static void test_fa_add_states_1(void **state) {
     assert_int_equal(fa->n_states, 2);
     assert_int_equal(fa->initial_state, 0);
     
-    for (unsigned int i = 0; i < 4; i++) {
-        assert_int_equal(fa->accepting[i], 0);
-    }
+    assert_true(cutils_set128_isempty(fa->accepting));
 
     assert_int_equal(fa->n_transitions, 0);
     assert_int_equal(fa->_capacity_transitions, 10);
@@ -81,9 +79,7 @@ static void test_fa_add_states_40(void **state) {
         assert_null(fa->transition[i]);
     }
     
-    for (unsigned int i = 0; i < 4; i++) {
-        assert_int_equal(fa->accepting[i], 0);
-    }
+    assert_true(cutils_set128_isempty(fa->accepting));
 
     assert_int_equal(fa->n_transitions, 0);
     assert_int_equal(fa->_capacity_transitions, 10);
@@ -110,13 +106,8 @@ static void test_fa_set_accepting(void **state) {
         assert_null(fa->transition[i]);
     }
     
-    for (unsigned int i = 0; i < 4; i++) {
-        if (i == 0) {
-            assert_int_equal(fa->accepting[i], 4);
-        } else {
-            assert_int_equal(fa->accepting[i], 0);
-        }
-    }
+    assert_int_equal(cutils_set128_size(fa->accepting), 1);
+    assert_true(cutils_set128_has_element(fa->accepting, 2));
 
     assert_int_equal(fa->n_transitions, 0);
     assert_int_equal(fa->_capacity_transitions, 10);
@@ -161,37 +152,6 @@ static void test_fa_add_transition_simple_outorder(void **state) {
     assert_int_equal(scanner_dfa_next_state(fa, 1, 'c'), 0);
     
     scanner_fa_destroy(fa);
-}
-
-static void test_set_union(void **state) {
-    unsigned int a[4] = {0, 5, 1, 2};
-    unsigned int b[4] = {3, 1, 128, 0};
-
-    scanner_fa_set_union(a, b);
-
-    assert_int_equal(a[0], 3);
-    assert_int_equal(a[1], 5);
-    assert_int_equal(a[2], 129);
-    assert_int_equal(a[3], 2);
-}
-
-static void test_set_zero(void **state) {
-    unsigned int a[4] = {3, 1, 128, 0};
-
-    scanner_fa_set_zero(a);
-
-    assert_int_equal(a[0], 0);
-    assert_int_equal(a[1], 0);
-    assert_int_equal(a[2], 0);
-    assert_int_equal(a[3], 0);
-}
-
-static void test_find_first_accepting(void **state) {
-    unsigned int a[4] = {0, 128, 1, 5};
-
-    unsigned int first_accepting = scanner_fa_find_first_accepting(a);
-
-    assert_int_equal(first_accepting, 32+7);
 }
 
 static void test_fa_is_accepting(void **state) {
@@ -288,8 +248,10 @@ static void test_fa_merge(void **state) {
     assert_int_equal(fa0->initial_state, 1);
     assert_int_equal(fa0->n_states, 5);
     assert_int_equal(fa0->n_transitions, 6);
-    assert_int_equal(fa0->accepting[0], 4+16);
 
+    assert_int_equal(cutils_set128_size(fa0->accepting), 2);
+    assert_true(cutils_set128_has_element(fa0->accepting, 2));
+    assert_true(cutils_set128_has_element(fa0->accepting, 4));
 
     assert_int_equal(scanner_dfa_next_state(fa0, 1, 'a'), 2);
     assert_int_equal(scanner_dfa_next_state(fa0, 2, 'a'), 2);
@@ -307,7 +269,8 @@ static void test_fa_thompson_create_char(void **state) {
     struct scanner_fa_128 *fa = scanner_fa_thompson_create_char('a');
 
     assert_int_equal(scanner_dfa_next_state(fa, 1, 'a'), 2);
-    assert_int_equal(fa->accepting[0], 4);
+    assert_int_equal(cutils_set128_size(fa->accepting), 1);
+    assert_true(cutils_set128_has_element(fa->accepting, 2));
     assert_int_equal(fa->initial_state, 1);
     assert_int_equal(fa->n_states, 3);
     assert_int_equal(fa->n_transitions, 1);
@@ -514,9 +477,6 @@ int main(void) {
         cmocka_unit_test(test_fa_set_accepting),
         cmocka_unit_test(test_fa_add_transition_simple),
         cmocka_unit_test(test_fa_add_transition_simple_outorder),
-        cmocka_unit_test(test_set_union),
-        cmocka_unit_test(test_set_zero),
-        cmocka_unit_test(test_find_first_accepting),
         cmocka_unit_test(test_fa_is_accepting),
         cmocka_unit_test(test_dfa_next_state),
         cmocka_unit_test(test_nfa_next_state),

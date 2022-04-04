@@ -14,6 +14,12 @@ PINNED:
   - when lexeme is optional either we leave it out or the token and the lexeme will have the same values.
   - scanner's skeleton should implement line counter and col counter
 ----
+- **04/04/22**;
+    - **Today**:
+        - in recent days, I've implemented bit-vectors as a separate module.
+        - I've started implementing the NFA to DFA algorithm
+    - **Next**:
+        - Continue implementing the NFA to DFA algorithm
 - **18/03/22**:
     - **Today**:
         - scheduling tasks, planning next steps
@@ -23,8 +29,8 @@ PINNED:
             - ~Look up other implementations afterwards and check against them!~
             - ~Implement the Thompson construction for the NFAs~
             - Implement the NFA to DFA algorithm
-                - I will need to implement bit-vectors as a set representation data-structure 
-                    - for this I should consider reorganizing bit-vectors into a separate implementation inside cutils
+                - ~I will need to implement bit-vectors as a set representation data-structure~
+                    - ~for this I should consider reorganizing bit-vectors into a separate implementation inside cutils~
             - I've tried to find an efficient DFA implementation in C and it isn't easy to find one. Is this really true? I should search more and maybe create a small paper on my implementation
 - **14/03/22**:
     - **Today**:

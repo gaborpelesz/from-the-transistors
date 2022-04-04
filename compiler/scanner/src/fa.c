@@ -394,3 +394,21 @@ void scanner_fa_thompson_close(struct scanner_fa_128 * const fa) {
     scanner_fa_add_transition(fa, fa_end, 0x00, fa_initial);
     scanner_fa_add_transition(fa, fa_end, 0x00, fa->n_states - 1);
 }
+
+void scanner_fa_nfa_to_dfa(struct scanner_fa_128 * const nfa) {
+    // q_i -> bit-vector of currently selected states
+    // Q -> list of q_i's (list of bit-vectors)
+    // alongside `nfa`, build a new FA called `DFA`
+
+    struct scanner_fa_128 *dfa = scanner_fa_create();
+
+    // reserve 16 sets at first. Double the size of the array when we reach that number
+    unsigned int Q_capacity = 16;
+    struct cutils_set128 *Q = malloc(sizeof(struct cutils_set128) * 16);
+}
+
+
+struct cutils_set128 scanner_fa_nfa_eclosure(struct scanner_fa_128 *nfa, struct cutils_set128 input_states) {
+    // computes epsilon closure around the `input_states`
+    // epsilon closure includes the `input_states`
+}
